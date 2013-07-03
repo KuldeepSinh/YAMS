@@ -1,4 +1,4 @@
-YAMSie
-======
+YAMS
+====
 
-Yet Another MQTT Server in Erlang
+Yet Another MQTT Server (in Erlang)
