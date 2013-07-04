@@ -1,4 +1,4 @@
-λAMB
+λAMS
 ====
 
-Yet Another MQTT Broker (in Erlang)
+Yet Another MQTT Server (in Erlang)
