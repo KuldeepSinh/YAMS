@@ -5,7 +5,7 @@
 %%   You may obtain a copy of the License at
 %%
 %%       http://www.apache.org/licenses/LICENSE-2.0
-
+%%
 %%   Unless required by applicable law or agreed to in writing, software
 %%   distributed under the License is distributed on an "AS IS" BASIS,
 %%   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -13,8 +13,19 @@
 %%   limitations under the License.
 
 -module(router).
--export([route/1]).
+-export([chk_type/1, chk_l/1, route/1]).
 -include_lib("eunit/include/eunit.hrl").
+
+chk_type(Bin = <<MT:4, _/binary>>) 
+  when ((MT <1) or (MT > 14)) ->
+    {error, invalid_msg_type, Bin};
+chk_type(Bin) ->
+    {ok, valid_msg_type, Bin}.
+
+
+chk_l(_) ->
+    ok.
+
 
 route(Bin = <<MT:4, _/binary>>) ->
     case MT of 
@@ -45,10 +56,22 @@ route(Bin = <<MT:4, _/binary>>) ->
 	13 ->
 	    {ok, pingresp, Bin};
 	14 ->
-	    {ok, disconnect, Bin};
-	_ ->
-	    {error, invalid_message_type, Bin}
-    end.
+	    {ok, disconnect, Bin}
+	end.
+
+
+
+chk_type_less_than_1_test() ->
+    ?assert({error, invalid_msg_type, <<0:4, 23400>>} =:= chk_type(<<0:4, 23400>>)).
+chk_type_more_than_14_test() ->
+    ?assert({error, invalid_msg_type, <<15:4, 23400>>} =:= chk_type(<<15:4, 23400>>)).
+chk_type_equal_1_test() ->
+    ?assert({ok, valid_msg_type, <<1:4, 23400>>} =:= chk_type(<<1:4, 23400>>)).
+chk_type_equal_14_test() ->
+    ?assert({ok, valid_msg_type, <<14:4, 23400>>} =:= chk_type(<<14:4, 23400>>)).
+chk_type_equal_7_test() ->
+    ?assert({ok, valid_msg_type, <<7:4, 23400>>} =:= chk_type(<<7:4, 23400>>)).
+
 
 
 route_connect_test() ->
@@ -79,8 +102,4 @@ route_pingresp_test() ->
     ?assert({ok, pingresp, <<13:4, 23400>>} =:= route(<<13:4, 23400>>)).
 route_disconnect_test() ->
     ?assert({ok, disconnect, <<14:4, 23400>>} =:= route(<<14:4, 23400>>)).
-route_less_than_1_test() ->
-    ?assert({error, invalid_message_type, <<0:4, 23400>>} =:= route(<<0:4, 23400>>)).
-route_more_than_14_test() ->
-    ?assert({error, invalid_message_type, <<15:4, 23400>>} =:= route(<<15:4, 23400>>)).
 
