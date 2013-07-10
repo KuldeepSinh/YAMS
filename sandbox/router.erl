@@ -14,19 +14,54 @@
 
 -module(router).
 -export([chk_type/1, chk_l/1, route/1]).
+-define(MAX_LENGTH, 268435455).
 -include_lib("eunit/include/eunit.hrl").
 
+%% Validate message_type
 chk_type(Bin = <<MT:4, _/binary>>) 
   when ((MT <1) or (MT > 14)) ->
     {error, invalid_msg_type, Bin};
 chk_type(Bin) ->
     {ok, valid_msg_type, Bin}.
 
+%% EUnit tests
+chk_type_less_than_1_test() ->
+    ?assert({error, invalid_msg_type, <<0:4, 23400>>} =:= chk_type(<<0:4, 23400>>)).
+chk_type_more_than_14_test() ->
+    ?assert({error, invalid_msg_type, <<15:4, 23400>>} =:= chk_type(<<15:4, 23400>>)).
+chk_type_equal_1_test() ->
+    ?assert({ok, valid_msg_type, <<1:4, 23400>>} =:= chk_type(<<1:4, 23400>>)).
+chk_type_equal_14_test() ->
+    ?assert({ok, valid_msg_type, <<14:4, 23400>>} =:= chk_type(<<14:4, 23400>>)).
+chk_type_equal_7_test() ->
+    ?assert({ok, valid_msg_type, <<7:4, 23400>>} =:= chk_type(<<7:4, 23400>>)).
 
-chk_l(_) ->
-    ok.
+%% Validate remaining length
+chk_l(<<Fst_Byte:8, RestBin/binary>>) ->
+    chk_l(Fst_Byte, RestBin, 0, 1).
+chk_l(_, _, RL, _)
+  when (RL > ?MAX_LENGTH) ->
+    {error, remaining_length_exceeds};
+%% Calculate the remaining length value: 
+%% Recurse if the value of the first bit is 1.
+chk_l(Fst_Byte, <<1:1, Len:7, Rest/binary>>, RL, Multiplier) ->
+    chk_l(Fst_Byte, Rest, RL + Len * Multiplier, Multiplier * 128);
+%% Calculate Value of the remaining length : 
+%% Return if the value of the first bit is 0.
+chk_l(Fst_Byte, <<0:1, Len:7, Rest/binary>>, RL, Multiplier)   
+    when ((RL + Len * Multiplier) =:= size(Rest)) ->
+    {
+      ok, 
+      {first_byte, Fst_Byte},
+      {remaining_length, RL + Len * Multiplier}, 
+      {remaining_binary, Rest}      
+    };
+%% Rest of the message are having invalid lenght.
+chk_l(_, _, _, _) ->    
+    {error, invalid_remaining_length}.
 
 
+%% Identify message type.
 route(Bin = <<MT:4, _/binary>>) ->
     case MT of 
 	1 ->
@@ -59,21 +94,7 @@ route(Bin = <<MT:4, _/binary>>) ->
 	    {ok, disconnect, Bin}
 	end.
 
-
-
-chk_type_less_than_1_test() ->
-    ?assert({error, invalid_msg_type, <<0:4, 23400>>} =:= chk_type(<<0:4, 23400>>)).
-chk_type_more_than_14_test() ->
-    ?assert({error, invalid_msg_type, <<15:4, 23400>>} =:= chk_type(<<15:4, 23400>>)).
-chk_type_equal_1_test() ->
-    ?assert({ok, valid_msg_type, <<1:4, 23400>>} =:= chk_type(<<1:4, 23400>>)).
-chk_type_equal_14_test() ->
-    ?assert({ok, valid_msg_type, <<14:4, 23400>>} =:= chk_type(<<14:4, 23400>>)).
-chk_type_equal_7_test() ->
-    ?assert({ok, valid_msg_type, <<7:4, 23400>>} =:= chk_type(<<7:4, 23400>>)).
-
-
-
+%% EUnit Tests...
 route_connect_test() ->
     ?assert({ok, connect, <<1:4, 23400>>} =:= route(<<1:4, 23400>>)).
 route_conack_test() ->
@@ -102,4 +123,3 @@ route_pingresp_test() ->
     ?assert({ok, pingresp, <<13:4, 23400>>} =:= route(<<13:4, 23400>>)).
 route_disconnect_test() ->
     ?assert({ok, disconnect, <<14:4, 23400>>} =:= route(<<14:4, 23400>>)).
-
