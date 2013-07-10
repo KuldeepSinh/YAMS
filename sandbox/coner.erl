@@ -28,7 +28,7 @@ chk_proto_name(<<_16, _:48, Ver:8, _/binary>>)
     {error, invalid_version}.
 
 %% Extract connection flags from RestBin.
-extract_flags(<<Usr:1, Pwd:1, WillR:1, WillQ:2, Will:1, ClnS:1, Rsvd:1, Rest/binary>>)->
+extract_flags(<<Usr:1, Pwd:1, WillR:1, WillQ:2, Will:1, ClnS:1, Rsvd:1, Rest/binary>>) ->
     {
       ok, 
       {con_flags, Usr, Pwd, WillR, WillQ, Will, ClnS, Rsvd}, 
