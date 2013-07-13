@@ -61,7 +61,7 @@ chk_l(_, _, _, _) ->
 
 %% Identify message type.
 route(Bin = <<1:4, _/binary>>) -> {ok, connect, Bin};
-route(Bin = <<2:4, _/binary>>) -> {ok, conack, Bin};
+route(Bin = <<2:4, _/binary>>) -> {ok, connack, Bin};
 route(Bin = <<3:4, _/binary>>) -> {ok, publish, Bin};
 route(Bin = <<4:4, _/binary>>) -> {ok, puback, Bin};
 route(Bin = <<5:4, _/binary>>) -> {ok, pubrec, Bin};
@@ -79,7 +79,7 @@ route(Bin = <<14:4, _/binary>>) -> {ok, disconnect, Bin}.
 route_connect_test() ->
     ?assert({ok, connect, <<1:4, 23400>>} =:= route(<<1:4, 23400>>)).
 route_conack_test() ->
-    ?assert({ok, conack, <<2:4, 23400>>} =:= route(<<2:4, 23400>>)).
+    ?assert({ok, connack, <<2:4, 23400>>} =:= route(<<2:4, 23400>>)).
 route_publish_test() ->
     ?assert({ok, publish, <<3:4, 23400>>} =:= route(<<3:4, 23400>>)).
 route_puback_test() ->
