@@ -14,12 +14,11 @@
 
 -module(coner).
 %% Process variable header
--export([validate_proto_name/1, extract_flags/1, extract_KAT_Payload/1]).
+-export([validate_proto_name/1, get_flags/1, get_KAT_Payload/1]).
 %% Process payload
--export([split_payload/1, validate_client/1, extract_wills/1, extract_user/3, extract_pwd/4]).
+-export([split_payload/1, validate_client/1, get_wills/1, get_user/3, get_pwd/4]).
 %% CONNACK
 -export([connack/1]).
-
 
 %% Validate if protocol name and protocol version are valid.
 validate_proto_name(<<6:16, "MQIsdp", 3:8, Rest/binary>>) -> {ok, Rest};
@@ -27,7 +26,7 @@ validate_proto_name(<<_:16, _:48, 3:8, _/binary>>) -> {error, invalid_proto_name
 validate_proto_name(<<_16, _:48, Ver:8, _/binary>>) when(Ver =/= 3)-> {error, invalid_version}.
 
 %% Extract connection flags from RestBin.
-extract_flags(<<Usr:1, Pwd:1, WillR:1, WillQ:2, Will:1, ClnS:1, Rsvd:1, Rest/binary>>) -> 
+get_flags(<<Usr:1, Pwd:1, WillR:1, WillQ:2, Will:1, ClnS:1, Rsvd:1, Rest/binary>>) -> 
     {
       ok, 
       {con_flags, Usr, Pwd, WillR, WillQ, Will, ClnS, Rsvd}, 
@@ -35,7 +34,7 @@ extract_flags(<<Usr:1, Pwd:1, WillR:1, WillQ:2, Will:1, ClnS:1, Rsvd:1, Rest/bin
     }.
 
 %% extract Keep alive timer and Payload from RestBin
-extract_KAT_Payload(<<KAT:16, Payload/binary>>) ->
+get_KAT_Payload(<<KAT:16, Payload/binary>>) ->
     {
       ok, 
       {kat, KAT}, 
@@ -64,27 +63,27 @@ validate_client(_) ->
 %% Assumption#1: This function is called only when Will == 1.
 %% Assumption#2: Paylod_list contains will topic and will message both.
 %% Extract Will Topic and Will Message
-extract_wills(Payload_list) ->
+get_wills(Payload_list) ->
     Topic = lists:nth(2, Payload_list),
     Msg = lists:nth(3, Payload_list),
     {ok, Topic, Msg}.    
 
 %% arguments = (Will, User, Payload_list)
-extract_user(1, 1, Payload_list) 
+get_user(1, 1, Payload_list) 
   when(erlang:length(Payload_list) >= 4) ->
     User = lists:nth(4, Payload_list),
     {ok, User};    
-extract_user(0, 1, Payload_list) 
+get_user(0, 1, Payload_list) 
   when(erlang:length(Payload_list) >= 2) ->
     User = lists:nth(2, Payload_list),
     {ok, User}.
 
 %% arguments = (Will, User, Password, Payload_list)
-extract_pwd(1, 1, 1, Payload_list) 
+get_pwd(1, 1, 1, Payload_list) 
   when(erlang:length(Payload_list) == 5) ->
     Pwd = lists:nth(5, Payload_list),
     {ok, Pwd};    
-extract_pwd(0, 1, 1, Payload_list) 
+get_pwd(0, 1, 1, Payload_list) 
   when(erlang:length(Payload_list) == 3) ->
     Pwd = lists:nth(3, Payload_list),
     {ok, Pwd}.
