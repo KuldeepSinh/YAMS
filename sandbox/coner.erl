@@ -13,18 +13,21 @@
 %% limitations under the License.
 
 -module(coner).
--export([chk_proto_name/1, extract_flags/1, 
-	 extract_KAT_Payload/1, split_payload/1, chk_client/1,
-	 extract_wills/1, extract_user/3, extract_pwd/4
-	]).
+%% Process variable header
+-export([validate_proto_name/1, extract_flags/1, extract_KAT_Payload/1]).
+%% Process payload
+-export([split_payload/1, validate_client/1, extract_wills/1, extract_user/3, extract_pwd/4]).
+%% CONNACK
+-export([connack/1]).
+
 
 %% Validate if protocol name and protocol version are valid.
-chk_proto_name(<<6:16, "MQIsdp", 3:8, Rest/binary>>) -> {ok, Rest};
-chk_proto_name(<<_:16, _:48, 3:8, _/binary>>) -> {error, invalid_proto_name};
-chk_proto_name(<<_16, _:48, Ver:8, _/binary>>) when(Ver =/= 3)-> {error, invalid_version}.
+validate_proto_name(<<6:16, "MQIsdp", 3:8, Rest/binary>>) -> {ok, Rest};
+validate_proto_name(<<_:16, _:48, 3:8, _/binary>>) -> {error, invalid_proto_name};
+validate_proto_name(<<_16, _:48, Ver:8, _/binary>>) when(Ver =/= 3)-> {error, invalid_version}.
 
 %% Extract connection flags from RestBin.
-extract_flags(<<Usr:1, Pwd:1, WillR:1, WillQ:2, Will:1, ClnS:1, Rsvd:1, Rest/binary>>) ->
+extract_flags(<<Usr:1, Pwd:1, WillR:1, WillQ:2, Will:1, ClnS:1, Rsvd:1, Rest/binary>>) -> 
     {
       ok, 
       {con_flags, Usr, Pwd, WillR, WillQ, Will, ClnS, Rsvd}, 
@@ -41,19 +44,22 @@ extract_KAT_Payload(<<KAT:16, Payload/binary>>) ->
 
 %% Split payload into the list of {FieldLength, Field}
 %% Note: caller should reverse the list returned from this function.
-split_payload(<<>>) -> [];
+split_payload(<<>>) -> 
+    [];
 split_payload(<<L:16, Rest/binary>>)
     when (size(Rest) >= L) ->
     {Extract, RestBin} = split_binary(Rest, L),
     split_payload(RestBin) ++ [{L, Extract}];
-split_payload(_) -> {error, length_mismatch}.
+split_payload(_) -> 
+    {error, length_mismatch}.
 
 %% Validate client identifier
-chk_client({L, Val})
+validate_client({L, Val})
   when((L >= 1) and (L =< 23)) ->
     %%<ToDo> : Lookup in the client-registry if the client ID is unique/client is registered with the system.
     {ok, valid_client, binary_to_list(Val)};
-chk_client(_) -> {error, invalid_client}.
+validate_client(_) -> 
+    {error, invalid_client}.
 
 %% Assumption#1: This function is called only when Will == 1.
 %% Assumption#2: Paylod_list contains will topic and will message both.
@@ -83,3 +89,7 @@ extract_pwd(0, 1, 1, Payload_list)
     Pwd = lists:nth(3, Payload_list),
     {ok, Pwd}.
 
+
+%% CONNACK = Acknowledge CONNECT
+connack(0) -> {ok, <<2:4, 0:1, 0:2, 0:1, 2:8, 0:8, 0:8>>};
+connack(Code) -> {error, <<2:4, 0:1, 0:2, 0:1, 2:8, 0:8, Code:8>>}.
