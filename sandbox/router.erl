@@ -19,10 +19,8 @@
 
 %% Validate message_type
 chk_type(Bin = <<MT:4, _/binary>>) 
-  when ((MT <1) or (MT > 14)) ->
-    {error, invalid_msg_type, Bin};
-chk_type(Bin) ->
-    {ok, valid_msg_type, Bin}.
+  when ((MT <1) or (MT > 14)) -> {error, invalid_msg_type, Bin};
+chk_type(Bin) -> {ok, valid_msg_type, Bin}.
 
 %% EUnit tests
 chk_type_less_than_1_test() ->
@@ -40,11 +38,11 @@ chk_type_equal_7_test() ->
 chk_l(<<Fst_Byte:8, RestBin/binary>>) ->
     chk_l(Fst_Byte, RestBin, 0, 1).
 chk_l(_, _, RL, _)
-  when (RL > ?MAX_LENGTH) ->
+  when (RL > ?MAX_LENGTH) -> 
     {error, remaining_length_exceeds};
 %% Calculate the remaining length value: 
 %% Recurse if the value of the first bit is 1.
-chk_l(Fst_Byte, <<1:1, Len:7, Rest/binary>>, RL, Multiplier) ->
+chk_l(Fst_Byte, <<1:1, Len:7, Rest/binary>>, RL, Multiplier) -> 
     chk_l(Fst_Byte, Rest, RL + Len * Multiplier, Multiplier * 128);
 %% Calculate Value of the remaining length : 
 %% Return if the value of the first bit is 0.
@@ -57,42 +55,25 @@ chk_l(Fst_Byte, <<0:1, Len:7, Rest/binary>>, RL, Multiplier)
       {remaining_binary, Rest}      
     };
 %% Rest of the message are having invalid lenght.
-chk_l(_, _, _, _) ->    
+chk_l(_, _, _, _) -> 
     {error, invalid_remaining_length}.
 
 
 %% Identify message type.
-route(Bin = <<MT:4, _/binary>>) ->
-    case MT of 
-	1 ->
-	    {ok, connect, Bin};
-	2 ->
-	    {ok, conack, Bin};
-	3 ->
-	    {ok, publish, Bin};
-	4 ->
-	    {ok, puback, Bin};
-	5 ->
-	    {ok, pubrec, Bin};
-	6 ->
-	    {ok, pubrel, Bin};
-	7 ->
-	    {ok, pubcomp, Bin};
-	8 ->
-	    {ok, subscribe, Bin};
-	9 ->
-	    {ok, suback, Bin};
-	10 ->
-	    {ok, unsubscribe, Bin};
-	11 ->
-	    {ok, unsuback, Bin};
-	12 ->
-	    {ok, pingreq, Bin};
-	13 ->
-	    {ok, pingresp, Bin};
-	14 ->
-	    {ok, disconnect, Bin}
-	end.
+route(Bin = <<1:4, _/binary>>) -> {ok, connect, Bin};
+route(Bin = <<2:4, _/binary>>) -> {ok, conack, Bin};
+route(Bin = <<3:4, _/binary>>) -> {ok, publish, Bin};
+route(Bin = <<4:4, _/binary>>) -> {ok, puback, Bin};
+route(Bin = <<5:4, _/binary>>) -> {ok, pubrec, Bin};
+route(Bin = <<6:4, _/binary>>) -> {ok, pubrel, Bin};
+route(Bin = <<7:4, _/binary>>) -> {ok, pubcomp, Bin};
+route(Bin = <<8:4, _/binary>>) -> {ok, subscribe, Bin};
+route(Bin = <<9:4, _/binary>>) -> {ok, suback, Bin};
+route(Bin = <<10:4, _/binary>>) -> {ok, unsubscribe, Bin};
+route(Bin = <<11:4, _/binary>>) -> {ok, unsuback, Bin};
+route(Bin = <<12:4, _/binary>>) -> {ok, pingreq, Bin};
+route(Bin = <<13:4, _/binary>>) -> {ok, pingresp, Bin};
+route(Bin = <<14:4, _/binary>>) -> {ok, disconnect, Bin}.
 
 %% EUnit Tests...
 route_connect_test() ->
