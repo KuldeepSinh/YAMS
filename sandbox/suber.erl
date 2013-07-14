@@ -20,7 +20,7 @@
 %% Payload
 -export([split_payload/2]).
 %% Response
--export([suback/1]).
+%% -export([suback/1]).
 
 %% Argument = First Byte ofthe message
 get_dup_flag(<<8:4, Dup:1, 1:2, 0:1>>) ->
@@ -51,6 +51,6 @@ split_payload(_, _) ->
 count_rem_l(Qs)
 
 
-suback(ID, Qs) ->
-    HeadBin = <<9:4, 0:1, 0:2, 0:1, >>
+%% suback(ID, Qs) ->
+%%    HeadBin = <<9:4, 0:1, 0:2, 0:1, >>
     
