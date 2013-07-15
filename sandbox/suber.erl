@@ -13,18 +13,18 @@
 %% limitations under the License.
 
 -module(suber).
-%% Fixed header
--export([get_dup_flag/1]).
-%% Variable header
+%% Fixed header (will be used for subscirbe and unsubscribe both)
+-export([split_fist_byte/1]).
+%% Variable header (will be used for subscirbe and unsubscribe both)
 -export([get_id_payload/1]).
-%% Payload
+%% Payload (will be used for subscirbe and unsubscribe both)
 -export([split_payload/2]).
 %% Response
-%% -export([suback/1]).
+-export([suback/3, unsuback/1]).
 
 %% Argument = First Byte ofthe message
-get_dup_flag(<<8:4, Dup:1, 1:2, 0:1>>) ->
-    {ok, Dup}.
+split_fist_byte(<<8:4, Dup:1, QoS:2, Retain:1>>) ->
+    {ok, Dup, QoS, Retain}.
     
 get_id_payload(<<ID:16, Payload/binary>>) ->
     {ok, ID, Payload}.
@@ -47,6 +47,10 @@ split_payload(unsubscribe, <<L:16, Rest/binary>>)
 split_payload(_, _) ->
     {error, length_mismatch}.
 
-%% suback(ID, Qs) ->
-%%    HeadBin = <<9:4, 0:1, 0:2, 0:1, >>
+%% Response suback
+suback(RemainingLength, MsgID, Qs) ->
+    <<9:4, 0:1, 0:2, 0:1, RemainingLength/binary, MsgID:16, Qs/binary>>.
     
+%% Response unsuback
+unsuback(MsgID) ->
+    <<11:4, 0:1, 0:2, 0:1, 2:8, MsgID:16>>.
