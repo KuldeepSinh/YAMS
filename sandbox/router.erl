@@ -13,7 +13,7 @@
 %%   limitations under the License.
 
 -module(router).
--export([chk_type/1, chk_l/1, route/1]).
+-export([chk_type/1, decode_l/1, encode_l/1, route/1]).
 -define(MAX_LENGTH, 268435455).
 -include_lib("eunit/include/eunit.hrl").
 
@@ -35,18 +35,18 @@ chk_type_equal_7_test() ->
     ?assert({ok, valid_msg_type, <<7:4, 23400>>} =:= chk_type(<<7:4, 23400>>)).
 
 %% Validate remaining length
-chk_l(<<Fst_Byte:8, RestBin/binary>>) ->
-    chk_l(Fst_Byte, RestBin, 0, 1).
-chk_l(_, _, RL, _)
+decode_l(<<Fst_Byte:8, RestBin/binary>>) ->
+    decode_l(Fst_Byte, RestBin, 0, 1).
+decode_l(_, _, RL, _)
   when (RL > ?MAX_LENGTH) -> 
     {error, remaining_length_exceeds};
 %% Calculate the remaining length value: 
 %% Recurse if the value of the first bit is 1.
-chk_l(Fst_Byte, <<1:1, Len:7, Rest/binary>>, RL, Multiplier) -> 
-    chk_l(Fst_Byte, Rest, RL + Len * Multiplier, Multiplier * 128);
+decode_l(Fst_Byte, <<1:1, Len:7, Rest/binary>>, RL, Multiplier) -> 
+    decode_l(Fst_Byte, Rest, RL + Len * Multiplier, Multiplier * 128);
 %% Calculate Value of the remaining length : 
 %% Return if the value of the first bit is 0.
-chk_l(Fst_Byte, <<0:1, Len:7, Rest/binary>>, RL, Multiplier)   
+decode_l(Fst_Byte, <<0:1, Len:7, Rest/binary>>, RL, Multiplier)   
     when ((RL + Len * Multiplier) =:= size(Rest)) ->
     {
       ok, 
@@ -55,8 +55,20 @@ chk_l(Fst_Byte, <<0:1, Len:7, Rest/binary>>, RL, Multiplier)
       {remaining_binary, Rest}      
     };
 %% Rest of the message are having invalid lenght.
-chk_l(_, _, _, _) -> 
+decode_l(_, _, _, _) -> 
     {error, invalid_remaining_length}.
+
+%% Encode Length
+encode_l(L) 
+  when (L > ?MAX_LENGTH) ->
+    {error, invalid_length};
+encode_l(L) ->
+    encode_l(<<>>, {L div 128, L rem 128}).
+
+encode_l(Bin, {0, RBits}) ->
+    list_to_binary([Bin, <<0:1, RBits:7>>]);
+encode_l(Bin, {FBit, RBits}) ->
+    encode_l(list_to_binary([Bin, <<1:1, RBits:7>>]), {FBit div 128, FBit rem 128}).
 
 
 %% Identify message type.
