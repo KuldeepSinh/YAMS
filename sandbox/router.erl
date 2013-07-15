@@ -15,24 +15,13 @@
 -module(router).
 -export([chk_type/1, decode_l/1, encode_l/1, route/1]).
 -define(MAX_LENGTH, 268435455).
--include_lib("eunit/include/eunit.hrl").
+
 
 %% Validate message_type
 chk_type(Bin = <<MT:4, _/binary>>) 
   when ((MT <1) or (MT > 14)) -> {error, invalid_msg_type, Bin};
 chk_type(Bin) -> {ok, valid_msg_type, Bin}.
 
-%% EUnit tests
-chk_type_less_than_1_test() ->
-    ?assert({error, invalid_msg_type, <<0:4, 23400>>} =:= chk_type(<<0:4, 23400>>)).
-chk_type_more_than_14_test() ->
-    ?assert({error, invalid_msg_type, <<15:4, 23400>>} =:= chk_type(<<15:4, 23400>>)).
-chk_type_equal_1_test() ->
-    ?assert({ok, valid_msg_type, <<1:4, 23400>>} =:= chk_type(<<1:4, 23400>>)).
-chk_type_equal_14_test() ->
-    ?assert({ok, valid_msg_type, <<14:4, 23400>>} =:= chk_type(<<14:4, 23400>>)).
-chk_type_equal_7_test() ->
-    ?assert({ok, valid_msg_type, <<7:4, 23400>>} =:= chk_type(<<7:4, 23400>>)).
 
 %% Validate remaining length
 decode_l(<<Fst_Byte:8, RestBin/binary>>) ->
@@ -86,33 +75,3 @@ route(Bin = <<11:4, _/binary>>) -> {ok, unsuback, Bin};
 route(Bin = <<12:4, _/binary>>) -> {ok, pingreq, Bin};
 route(Bin = <<13:4, _/binary>>) -> {ok, pingresp, Bin};
 route(Bin = <<14:4, _/binary>>) -> {ok, disconnect, Bin}.
-
-%% EUnit Tests...
-route_connect_test() ->
-    ?assert({ok, connect, <<1:4, 23400>>} =:= route(<<1:4, 23400>>)).
-route_conack_test() ->
-    ?assert({ok, connack, <<2:4, 23400>>} =:= route(<<2:4, 23400>>)).
-route_publish_test() ->
-    ?assert({ok, publish, <<3:4, 23400>>} =:= route(<<3:4, 23400>>)).
-route_puback_test() ->
-    ?assert({ok, puback, <<4:4, 23400>>} =:= route(<<4:4, 23400>>)).
-route_pubrec_test() ->
-    ?assert({ok, pubrec, <<5:4, 23400>>} =:= route(<<5:4, 23400>>)).
-route_pubrel_test() ->
-    ?assert({ok, pubrel, <<6:4, 23400>>} =:= route(<<6:4, 23400>>)).
-route_pubcomp_test() ->
-    ?assert({ok, pubcomp, <<7:4, 23400>>} =:= route(<<7:4, 23400>>)).
-route_subscribe_test() ->
-    ?assert({ok, subscribe, <<8:4, 23400>>} =:= route(<<8:4, 23400>>)).
-route_suback_test() ->
-    ?assert({ok, suback, <<9:4, 23400>>} =:= route(<<9:4, 23400>>)).
-route_unsubscribe_test() ->
-    ?assert({ok, unsubscribe, <<10:4, 23400>>} =:= route(<<10:4, 23400>>)).
-route_unsuback_test() ->
-    ?assert({ok, unsuback, <<11:4, 23400>>} =:= route(<<11:4, 23400>>)).
-route_pingreq_test() ->
-    ?assert({ok, pingreq, <<12:4, 23400>>} =:= route(<<12:4, 23400>>)).
-route_pingresp_test() ->
-    ?assert({ok, pingresp, <<13:4, 23400>>} =:= route(<<13:4, 23400>>)).
-route_disconnect_test() ->
-    ?assert({ok, disconnect, <<14:4, 23400>>} =:= route(<<14:4, 23400>>)).
