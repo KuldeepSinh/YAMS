@@ -39,17 +39,13 @@ split_payload(subscribe, <<L:16, Rest/binary>>)
     {Topic, RB} = split_binary(Rest, L),
     <<QoS:8, RestBin/binary>> = RB,
     split_payload(subscribe, RestBin) ++ [{L, Topic, QoS}];
-%% Unsubscribe: Payload is a collection of triplets {Length, Topic}
+%% Unsubscribe: Payload is a collection of doublets {Length, Topic}
 split_payload(unsubscribe, <<L:16, Rest/binary>>)
   when(size(Rest) >= L) ->
     {Topic, RestBin} = split_binary(Rest, L),
     split_payload(unsubscribe, RestBin) ++ [{L, Topic}];
 split_payload(_, _) ->
     {error, length_mismatch}.
-
-
-count_rem_l(Qs)
-
 
 %% suback(ID, Qs) ->
 %%    HeadBin = <<9:4, 0:1, 0:2, 0:1, >>
