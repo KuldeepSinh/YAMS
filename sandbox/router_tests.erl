@@ -15,19 +15,56 @@
 -module(router_tests).
 -include_lib("eunit/include/eunit.hrl").
 
-%% EUnit tests
-chk_type_less_than_1_test() ->
-    ?assert({error, invalid_msg_type, <<0:4, 23400>>} =:= router:chk_type(<<0:4, 23400>>)).
-chk_type_more_than_14_test() ->
-    ?assert({error, invalid_msg_type, <<15:4, 23400>>} =:=  router:chk_type(<<15:4, 23400>>)).
-chk_type_equal_1_test() ->
-    ?assert({ok, valid_msg_type, <<1:4, 23400>>} =:=  router:chk_type(<<1:4, 23400>>)).
-chk_type_equal_14_test() ->
-    ?assert({ok, valid_msg_type, <<14:4, 23400>>} =:=  router:chk_type(<<14:4, 23400>>)).
-chk_type_equal_7_test() ->
-    ?assert({ok, valid_msg_type, <<7:4, 23400>>} =:=  router:chk_type(<<7:4, 23400>>)).
+%% Tests for router:validate_type
+validate_type_less_than_1_test() ->
+    ?assert({error, invalid_msg_type, <<0:4, 23400>>} =:= router:validate_type(<<0:4, 23400>>)).
+validate_type_more_than_14_test() ->
+    ?assert({error, invalid_msg_type, <<15:4, 23400>>} =:=  router:validate_type(<<15:4, 23400>>)).
+validate_type_equal_1_test() ->
+    ?assert({ok, valid_msg_type, <<1:4, 23400>>} =:=  router:validate_type(<<1:4, 23400>>)).
+validate_type_equal_14_test() ->
+    ?assert({ok, valid_msg_type, <<14:4, 23400>>} =:=  router:validate_type(<<14:4, 23400>>)).
+validate_type_equal_7_test() ->
+    ?assert({ok, valid_msg_type, <<7:4, 23400>>} =:=  router:validate_type(<<7:4, 23400>>)).
 
-%% EUnit Tests...
+
+%% Tests for router:decode_l
+
+%% Test for router:encode_l
+encode_length_0_test() ->
+    ?assert(<<0>> =:= router:encode_l(0)).
+encode_length_65_test() ->
+    ?assert(<<65>> =:= router:encode_l(65)).
+encode_length_127_test() ->
+    ?assert(<<127>> =:= router:encode_l(127)).
+encode_length_128_test() ->
+    ?assert(<<128,1>> =:= router:encode_l(128)).
+encode_length_8192_test() ->
+    ?assert(<<128, 64>> =:= router:encode_l(8192)).
+encode_length_16383_test() ->
+    ?assert(<<255, 127>> =:= router:encode_l(16383)).
+encode_length_16384_test() ->
+    ?assert(<<128, 128, 1>> =:= router:encode_l(16384)).
+encode_length_1048575_test() ->
+    ?assert(<<255, 255, 63>> =:= router:encode_l(1048575)).
+encode_length_1048576_test() ->
+    ?assert(<<128, 128, 64>> =:= router:encode_l(1048576)).
+encode_length_2097151_test() ->
+    ?assert(<<255, 255, 127>> =:= router:encode_l(2097151)).
+encode_length_2097152_test() ->
+    ?assert(<<128, 128, 128, 1>> =:= router:encode_l(2097152)).
+encode_length_134217727_test() ->
+    ?assert(<<255, 255, 255, 63>> =:= router:encode_l(134217727)).
+encode_length_134217728_test() ->
+    ?assert(<<128, 128, 128, 64>> =:= router:encode_l(134217728)).
+encode_length_268435455_test() ->
+    ?assert(<<255, 255, 255, 127>> =:= router:encode_l(268435455)).
+encode_length_268435456_test() ->
+    ?assert({error, invalid_length} =:= router:encode_l(268435456)).
+
+
+
+%% Tests for router:route
 route_connect_test() ->
     ?assert({ok, connect, <<1:4, 23400>>} =:=  router:route(<<1:4, 23400>>)).
 route_conack_test() ->
