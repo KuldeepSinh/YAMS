@@ -13,38 +13,36 @@
 %%   limitations under the License.
 
 -module(router).
--export([chk_type/1, decode_l/1, encode_l/1, route/1]).
+-export([validate_type/1, decode_l/1, encode_l/1, route/1]).
 -define(MAX_LENGTH, 268435455).
 
-
 %% Validate message_type
-chk_type(Bin = <<MT:4, _/binary>>) 
+validate_type(Bin = <<MT:4, _/binary>>) 
   when ((MT <1) or (MT > 14)) -> {error, invalid_msg_type, Bin};
-chk_type(Bin) -> {ok, valid_msg_type, Bin}.
+validate_type(Bin) -> {ok, valid_msg_type, Bin}.
 
 
-%% Validate remaining length
-decode_l(<<Fst_Byte:8, RestBin/binary>>) ->
-    decode_l(Fst_Byte, RestBin, 0, 1).
-decode_l(_, _, RL, _)
-  when (RL > ?MAX_LENGTH) -> 
+%% Decode remaining length (RestBin does not contain FirstByte)
+decode_l(RestBin) ->
+    decode_l(RestBin, 0, 1).
+decode_l(_, RemainingLength, _)
+  when (RemainingLength > ?MAX_LENGTH) -> 
     {error, remaining_length_exceeds};
 %% Calculate the remaining length value: 
 %% Recurse if the value of the first bit is 1.
-decode_l(Fst_Byte, <<1:1, Len:7, Rest/binary>>, RL, Multiplier) -> 
-    decode_l(Fst_Byte, Rest, RL + Len * Multiplier, Multiplier * 128);
+decode_l(<<1:1, Len:7, RestBin/binary>>, RemainingLength, Multiplier) -> 
+    decode_l(RestBin, RemainingLength + Len * Multiplier, Multiplier * 128);
 %% Calculate Value of the remaining length : 
 %% Return if the value of the first bit is 0.
-decode_l(Fst_Byte, <<0:1, Len:7, Rest/binary>>, RL, Multiplier)   
-    when ((RL + Len * Multiplier) =:= size(Rest)) ->
+decode_l(<<0:1, Len:7, RestBin/binary>>, RemainingLength, Multiplier)   
+    when ((RemainingLength + Len * Multiplier) =:= size(RestBin)) ->
     {
       ok, 
-      {first_byte, Fst_Byte},
-      {remaining_length, RL + Len * Multiplier}, 
-      {remaining_binary, Rest}      
+      {remaining_length, RemainingLength + Len * Multiplier}, 
+      {remaining_binary, RestBin}      
     };
 %% Rest of the message are having invalid lenght.
-decode_l(_, _, _, _) -> 
+decode_l(_, _, _) -> 
     {error, invalid_remaining_length}.
 
 %% Encode Length
@@ -58,7 +56,6 @@ encode_l(Bin, {0, RBits}) ->
     list_to_binary([Bin, <<0:1, RBits:7>>]);
 encode_l(Bin, {FBit, RBits}) ->
     encode_l(list_to_binary([Bin, <<1:1, RBits:7>>]), {FBit div 128, FBit rem 128}).
-
 
 %% Identify message type.
 route(Bin = <<1:4, _/binary>>) -> {ok, connect, Bin};
