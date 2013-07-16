@@ -27,8 +27,57 @@ validate_type_equal_14_test() ->
 validate_type_equal_7_test() ->
     ?assert({ok, valid_msg_type, <<7:4, 23400>>} =:=  router:validate_type(<<7:4, 23400>>)).
 
-
 %% Tests for router:decode_l
+decode_length_0_test() ->
+    ?assert({ok, 
+	     {remaining_length, 0}, 
+	     {remaining_binary, <<>>}} =:= router:decode_l(<<0>>)).
+decode_length_65_test() ->
+    ?assert({ok, 
+	     {remaining_length, 65}, 
+	     {remaining_binary, <<1:520>>}} =:= router:decode_l(<<65, 1:520>>)).
+decode_length_127_test() ->
+    ?assert({ok, 
+	     {remaining_length, 127}, 
+	     {remaining_binary, <<1:1016>>}} =:= router:decode_l(<<127, 1:1016>>)).
+decode_length_128_test() ->
+    ?assert({ok, 
+	     {remaining_length, 128}, 
+	     {remaining_binary, <<1:1024>>}} =:= router:decode_l(<<128, 1, 1:1024>>)).
+decode_length_8192_test() ->
+    ?assert({ok, 
+	     {remaining_length, 8192}, 
+	     {remaining_binary, <<1:65536>>}} =:= router:decode_l(<<128, 64, 1:65536>>)).
+decode_length_16383_test() ->
+    ?assert({ok, 
+	     {remaining_length, 16383}, 
+	     {remaining_binary, <<1:131064>>}} =:= router:decode_l(<<255, 127, 1:131064>>)).
+decode_length_1048575_test() ->
+    ?assert({ok, 
+	     {remaining_length, 1048575}, 
+	     {remaining_binary, <<1:8388600>>}} =:= router:decode_l(<<255, 255, 63, 1:8388600>>)).
+decode_length_2097151_test() ->
+    ?assert({ok, 
+	     {remaining_length, 2097151}, 
+	     {remaining_binary, <<1:16777208>>}} =:= router:decode_l(<<255, 255, 127, 1:16777208>>)).
+decode_length_2097152_test() ->
+    ?assert({ok, 
+	     {remaining_length, 2097152}, 
+	     {remaining_binary, <<1:16777216>>}} =:= router:decode_l(<<128, 128, 128, 1, 1:16777216>>)).
+decode_length_134217727_test() ->
+    ?assert({ok, 
+	     {remaining_length, 134217727}, 
+	     {remaining_binary, <<1:1073741816>>}} =:= router:decode_l(<<255, 255, 255, 63, 1:1073741816>>)).
+decode_length_134217728_test() ->
+    ?assert({ok, 
+	     {remaining_length, 134217728}, 
+	     {remaining_binary, <<1:1073741824>>}} =:= router:decode_l(<<128, 128, 128, 64, 1:1073741824>>)).
+decode_length_268435455_test() ->
+    ?assert({ok, 
+	     {remaining_length, 268435455}, 
+	     {remaining_binary, <<1:2147483640>>}} =:= router:decode_l(<<255, 255, 255, 127, 1:2147483640>>)).
+decode_length_268435456_test() ->
+    ?assert({error, invalid_remaining_length} =:= router:decode_l(<<255, 255, 255, 127, 1:2147483648>>)).
 
 %% Test for router:encode_l
 encode_length_0_test() ->
