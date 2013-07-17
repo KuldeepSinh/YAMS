@@ -65,5 +65,5 @@ encode_l(L) ->
 
 encode_l(Bin, {0, RBits}) ->
     list_to_binary([Bin, <<0:1, RBits:7>>]);
-encode_l(Bin, {RLength, RBits}) ->
-    encode_l(list_to_binary([Bin, <<1:1, RBits:7>>]), {RLength div 128, RLength rem 128}).
+encode_l(Bin, {L, RBits}) ->
+    encode_l(list_to_binary([Bin, <<1:1, RBits:7>>]), {L div 128, L rem 128}).
