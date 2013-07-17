@@ -47,41 +47,29 @@ get_type_disconnect_test() ->
 
 %% Tests for router:get_remaining_bin
 get_remaining_bin_0_test() ->
-    ?assert({ok, 
-	     {remaining_binary, <<>>}} =:= router:get_remaining_bin(<<0>>)).
+    ?assert({ok,<<>>} =:= router:get_remaining_bin(<<0>>)).
 get_remaining_bin_65_test() ->
-    ?assert({ok, 
-	     {remaining_binary, <<1:520>>}} =:= router:get_remaining_bin(<<65, 1:520>>)).
+    ?assert({ok, <<1:520>>} =:= router:get_remaining_bin(<<65, 1:520>>)).
 get_remaining_bin_127_test() ->
-    ?assert({ok, 
-	     {remaining_binary, <<1:1016>>}} =:= router:get_remaining_bin(<<127, 1:1016>>)).
+    ?assert({ok, <<1:1016>>} =:= router:get_remaining_bin(<<127, 1:1016>>)).
 get_remaining_bin_128_test() ->
-    ?assert({ok, 
-	     {remaining_binary, <<1:1024>>}} =:= router:get_remaining_bin(<<128, 1, 1:1024>>)).
+    ?assert({ok, <<1:1024>>} =:= router:get_remaining_bin(<<128, 1, 1:1024>>)).
 get_remaining_bin_8192_test() ->
-    ?assert({ok, 
-	     {remaining_binary, <<1:65536>>}} =:= router:get_remaining_bin(<<128, 64, 1:65536>>)).
+    ?assert({ok, <<1:65536>>} =:= router:get_remaining_bin(<<128, 64, 1:65536>>)).
 get_remaining_bin_16383_test() ->
-    ?assert({ok, 
-	     {remaining_binary, <<1:131064>>}} =:= router:get_remaining_bin(<<255, 127, 1:131064>>)).
+    ?assert({ok, <<1:131064>>} =:= router:get_remaining_bin(<<255, 127, 1:131064>>)).
 get_remaining_bin_1048575_test() ->
-    ?assert({ok, 
-	     {remaining_binary, <<1:8388600>>}} =:= router:get_remaining_bin(<<255, 255, 63, 1:8388600>>)).
+    ?assert({ok, <<1:8388600>>} =:= router:get_remaining_bin(<<255, 255, 63, 1:8388600>>)).
 get_remaining_bin_2097151_test() ->
-    ?assert({ok, 
-	     {remaining_binary, <<1:16777208>>}} =:= router:get_remaining_bin(<<255, 255, 127, 1:16777208>>)).
+    ?assert({ok, <<1:16777208>>} =:= router:get_remaining_bin(<<255, 255, 127, 1:16777208>>)).
 get_remaining_bin_2097152_test() ->
-    ?assert({ok, 
-	     {remaining_binary, <<1:16777216>>}} =:= router:get_remaining_bin(<<128, 128, 128, 1, 1:16777216>>)).
+    ?assert({ok, <<1:16777216>>} =:= router:get_remaining_bin(<<128, 128, 128, 1, 1:16777216>>)).
 get_remaining_bin_134217727_test() ->
-    ?assert({ok, 
-	     {remaining_binary, <<1:1073741816>>}} =:= router:get_remaining_bin(<<255, 255, 255, 63, 1:1073741816>>)).
+    ?assert({ok, <<1:1073741816>>} =:= router:get_remaining_bin(<<255, 255, 255, 63, 1:1073741816>>)).
 get_remaining_bin_134217728_test() ->
-    ?assert({ok, 
-	     {remaining_binary, <<1:1073741824>>}} =:= router:get_remaining_bin(<<128, 128, 128, 64, 1:1073741824>>)).
+    ?assert({ok, <<1:1073741824>>} =:= router:get_remaining_bin(<<128, 128, 128, 64, 1:1073741824>>)).
 get_remaining_bin_268435455_test() ->
-    ?assert({ok, 
-	     {remaining_binary, <<1:2147483640>>}} =:= router:get_remaining_bin(<<255, 255, 255, 127, 1:2147483640>>)).
+    ?assert({ok, <<1:2147483640>>} =:= router:get_remaining_bin(<<255, 255, 255, 127, 1:2147483640>>)).
 get_remaining_bin_268435456_test() ->
     ?assert({error, invalid_remaining_length} =:= router:get_remaining_bin(<<255, 255, 255, 127, 1:2147483648>>)).
 

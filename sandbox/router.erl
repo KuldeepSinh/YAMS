@@ -50,10 +50,10 @@ get_remaining_bin(<<1:1, Len:7, RestBin/binary>>, RLength, Multiplier) ->
 get_remaining_bin(<<0:1, Len:7, RestBin/binary>>, RLength, Multiplier)   
     when ((RLength + Len * Multiplier) =:= size(RestBin)) ->
     {
-      ok, 
+      ok, RestBin 
       %% <ToDo : Remaining length helpful for debugging. I should log it's value (may be with 'lager').> 
       %% {remaining_length, RLength + Len * Multiplier}, 
-      {remaining_binary, RestBin}      
+      %% {remaining_binary, RestBin}      
     };
 %% Rest of the message are having invalid lenght.
 get_remaining_bin(_, _, _) -> 
