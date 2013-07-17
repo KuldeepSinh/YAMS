@@ -13,14 +13,8 @@
 %%   limitations under the License.
 
 -module(router).
--export([validate_type/1, decode_l/1, encode_l/1, route/1]).
+-export([decode_l/1, encode_l/1, get_type/1]).
 -define(MAX_LENGTH, 268435455).
-
-%% Validate message_type
-validate_type(<<MT:4, _/binary>>) 
-  when ((MT >=1) and (MT =< 14)) -> {ok, valid_msg_type};
-validate_type(_) -> {error, invalid_msg_type}.
-
 
 %% Decode remaining length (RestBin does not contain FirstByte)
 decode_l(RestBin) ->
@@ -58,17 +52,18 @@ encode_l(Bin, {FBit, RBits}) ->
     encode_l(list_to_binary([Bin, <<1:1, RBits:7>>]), {FBit div 128, FBit rem 128}).
 
 %% Identify message type.
-route(Bin = <<1:4, _/binary>>) -> {ok, connect, Bin};
-route(Bin = <<2:4, _/binary>>) -> {ok, connack, Bin};
-route(Bin = <<3:4, _/binary>>) -> {ok, publish, Bin};
-route(Bin = <<4:4, _/binary>>) -> {ok, puback, Bin};
-route(Bin = <<5:4, _/binary>>) -> {ok, pubrec, Bin};
-route(Bin = <<6:4, _/binary>>) -> {ok, pubrel, Bin};
-route(Bin = <<7:4, _/binary>>) -> {ok, pubcomp, Bin};
-route(Bin = <<8:4, _/binary>>) -> {ok, subscribe, Bin};
-route(Bin = <<9:4, _/binary>>) -> {ok, suback, Bin};
-route(Bin = <<10:4, _/binary>>) -> {ok, unsubscribe, Bin};
-route(Bin = <<11:4, _/binary>>) -> {ok, unsuback, Bin};
-route(Bin = <<12:4, _/binary>>) -> {ok, pingreq, Bin};
-route(Bin = <<13:4, _/binary>>) -> {ok, pingresp, Bin};
-route(Bin = <<14:4, _/binary>>) -> {ok, disconnect, Bin}.
+get_type(<<1:4, _/binary>>) -> {ok, connect};
+get_type(<<2:4, _/binary>>) -> {ok, connack};
+get_type(<<3:4, _/binary>>) -> {ok, publish};
+get_type(<<4:4, _/binary>>) -> {ok, puback};
+get_type(<<5:4, _/binary>>) -> {ok, pubrec};
+get_type(<<6:4, _/binary>>) -> {ok, pubrel};
+get_type(<<7:4, _/binary>>) -> {ok, pubcomp};
+get_type(<<8:4, _/binary>>) -> {ok, subscribe};
+get_type(<<9:4, _/binary>>) -> {ok, suback};
+get_type(<<10:4, _/binary>>) -> {ok, unsubscribe};
+get_type(<<11:4, _/binary>>) -> {ok, unsuback};
+get_type(<<12:4, _/binary>>) -> {ok, pingreq};
+get_type(<<13:4, _/binary>>) -> {ok, pingresp};
+get_type(<<14:4, _/binary>>) -> {ok, disconnect};
+get_type(_) -> {error, invalid_msg_type}.

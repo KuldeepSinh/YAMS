@@ -15,18 +15,6 @@
 -module(router_tests).
 -include_lib("eunit/include/eunit.hrl").
 
-%% Tests for router:validate_type
-validate_type_less_than_1_test() ->
-    ?assert({error, invalid_msg_type} =:= router:validate_type(<<0:4, 23400>>)).
-validate_type_more_than_14_test() ->
-    ?assert({error, invalid_msg_type} =:=  router:validate_type(<<15:4, 23400>>)).
-validate_type_equal_1_test() ->
-    ?assert({ok, valid_msg_type} =:=  router:validate_type(<<1:4, 23400>>)).
-validate_type_equal_14_test() ->
-    ?assert({ok, valid_msg_type} =:=  router:validate_type(<<14:4, 23400>>)).
-validate_type_equal_7_test() ->
-    ?assert({ok, valid_msg_type} =:=  router:validate_type(<<7:4, 23400>>)).
-
 %% Tests for router:decode_l
 decode_length_0_test() ->
     ?assert({ok, 
@@ -113,32 +101,36 @@ encode_length_268435456_test() ->
 
 
 
-%% Tests for router:route
-route_connect_test() ->
-    ?assert({ok, connect, <<1:4, 23400>>} =:=  router:route(<<1:4, 23400>>)).
-route_conack_test() ->
-    ?assert({ok, connack, <<2:4, 23400>>} =:=  router:route(<<2:4, 23400>>)).
-route_publish_test() ->
-    ?assert({ok, publish, <<3:4, 23400>>} =:=  router:route(<<3:4, 23400>>)).
-route_puback_test() ->
-    ?assert({ok, puback, <<4:4, 23400>>} =:=  router:route(<<4:4, 23400>>)).
-route_pubrec_test() ->
-    ?assert({ok, pubrec, <<5:4, 23400>>} =:=  router:route(<<5:4, 23400>>)).
-route_pubrel_test() ->
-    ?assert({ok, pubrel, <<6:4, 23400>>} =:=  router:route(<<6:4, 23400>>)).
-route_pubcomp_test() ->
-    ?assert({ok, pubcomp, <<7:4, 23400>>} =:=  router:route(<<7:4, 23400>>)).
-route_subscribe_test() ->
-    ?assert({ok, subscribe, <<8:4, 23400>>} =:=  router:route(<<8:4, 23400>>)).
-route_suback_test() ->
-    ?assert({ok, suback, <<9:4, 23400>>} =:=  router:route(<<9:4, 23400>>)).
-route_unsubscribe_test() ->
-    ?assert({ok, unsubscribe, <<10:4, 23400>>} =:=  router:route(<<10:4, 23400>>)).
-route_unsuback_test() ->
-    ?assert({ok, unsuback, <<11:4, 23400>>} =:=  router:route(<<11:4, 23400>>)).
-route_pingreq_test() ->
-    ?assert({ok, pingreq, <<12:4, 23400>>} =:=  router:route(<<12:4, 23400>>)).
-route_pingresp_test() ->
-    ?assert({ok, pingresp, <<13:4, 23400>>} =:=  router:route(<<13:4, 23400>>)).
-route_disconnect_test() ->
-    ?assert({ok, disconnect, <<14:4, 23400>>} =:=  router:route(<<14:4, 23400>>)).
+%% Tests for router:get_type
+get_type_connect_test() ->
+    ?assert({ok, connect} =:=  router:get_type(<<1:4, 23400>>)).
+get_type_conack_test() ->
+    ?assert({ok, connack} =:=  router:get_type(<<2:4, 23400>>)).
+get_type_publish_test() ->
+    ?assert({ok, publish} =:=  router:get_type(<<3:4, 23400>>)).
+get_type_puback_test() ->
+    ?assert({ok, puback} =:=  router:get_type(<<4:4, 23400>>)).
+get_type_pubrec_test() ->
+    ?assert({ok, pubrec} =:=  router:get_type(<<5:4, 23400>>)).
+get_type_pubrel_test() ->
+    ?assert({ok, pubrel} =:=  router:get_type(<<6:4, 23400>>)).
+get_type_pubcomp_test() ->
+    ?assert({ok, pubcomp} =:=  router:get_type(<<7:4, 23400>>)).
+get_type_subscribe_test() ->
+    ?assert({ok, subscribe} =:=  router:get_type(<<8:4, 23400>>)).
+get_type_suback_test() ->
+    ?assert({ok, suback} =:=  router:get_type(<<9:4, 23400>>)).
+get_type_unsubscribe_test() ->
+    ?assert({ok, unsubscribe} =:=  router:get_type(<<10:4, 23400>>)).
+get_type_unsuback_test() ->
+    ?assert({ok, unsuback} =:=  router:get_type(<<11:4, 23400>>)).
+get_type_pingreq_test() ->
+    ?assert({ok, pingreq} =:=  router:get_type(<<12:4, 23400>>)).
+get_type_pingresp_test() ->
+    ?assert({ok, pingresp} =:=  router:get_type(<<13:4, 23400>>)).
+get_type_disconnect_test() ->
+    ?assert({ok, disconnect} =:=  router:get_type(<<14:4, 23400>>)).
+get_type_invalid_15_test() ->
+    ?assert({error, invalid_msg_type} =:=  router:get_type(<<15:4, 23400>>)).
+get_type_invalid_0_test() ->
+    ?assert({error, invalid_msg_type} =:=  router:get_type(<<0:4, 23400>>)).
