@@ -13,43 +13,8 @@
 %%   limitations under the License.
 
 -module(router).
--export([decode_l/1, encode_l/1, get_type/1]).
+-export([get_type/1, decode_l/1, encode_l/1]).
 -define(MAX_LENGTH, 268435455).
-
-%% Decode remaining length (RestBin does not contain FirstByte)
-decode_l(RestBin) ->
-    decode_l(RestBin, 0, 1).
-decode_l(_, RemainingLength, _)
-  when (RemainingLength > ?MAX_LENGTH) -> 
-    {error, remaining_length_exceeds};
-%% Calculate the remaining length value: 
-%% Recurse if the value of the first bit is 1.
-decode_l(<<1:1, Len:7, RestBin/binary>>, RemainingLength, Multiplier) -> 
-    decode_l(RestBin, RemainingLength + Len * Multiplier, Multiplier * 128);
-%% Calculate Value of the remaining length : 
-%% Return if the value of the first bit is 0.
-decode_l(<<0:1, Len:7, RestBin/binary>>, RemainingLength, Multiplier)   
-    when ((RemainingLength + Len * Multiplier) =:= size(RestBin)) ->
-    {
-      ok, 
-      {remaining_length, RemainingLength + Len * Multiplier}, 
-      {remaining_binary, RestBin}      
-    };
-%% Rest of the message are having invalid lenght.
-decode_l(_, _, _) -> 
-    {error, invalid_remaining_length}.
-
-%% Encode Length
-encode_l(L) 
-  when (L > ?MAX_LENGTH) ->
-    {error, invalid_length};
-encode_l(L) ->
-    encode_l(<<>>, {L div 128, L rem 128}).
-
-encode_l(Bin, {0, RBits}) ->
-    list_to_binary([Bin, <<0:1, RBits:7>>]);
-encode_l(Bin, {FBit, RBits}) ->
-    encode_l(list_to_binary([Bin, <<1:1, RBits:7>>]), {FBit div 128, FBit rem 128}).
 
 %% Identify message type.
 get_type(<<1:4, _/binary>>) -> {ok, connect};
@@ -67,3 +32,38 @@ get_type(<<12:4, _/binary>>) -> {ok, pingreq};
 get_type(<<13:4, _/binary>>) -> {ok, pingresp};
 get_type(<<14:4, _/binary>>) -> {ok, disconnect};
 get_type(_) -> {error, invalid_msg_type}.
+
+%% Decode remaining length (RestBin does not contain FirstByte)
+decode_l(RestBin) ->
+    decode_l(RestBin, 0, 1).
+decode_l(_, RLength, _)
+  when (RLength > ?MAX_LENGTH) -> 
+    {error, remaining_length_exceeds};
+%% Calculate the remaining length value: 
+%% Recurse if the value of the first bit is 1.
+decode_l(<<1:1, Len:7, RestBin/binary>>, RLength, Multiplier) -> 
+    decode_l(RestBin, RLength + Len * Multiplier, Multiplier * 128);
+%% Calculate Value of the remaining length : 
+%% Return if the value of the first bit is 0.
+decode_l(<<0:1, Len:7, RestBin/binary>>, RLength, Multiplier)   
+    when ((RLength + Len * Multiplier) =:= size(RestBin)) ->
+    {
+      ok, 
+      {remaining_length, RLength + Len * Multiplier}, 
+      {remaining_binary, RestBin}      
+    };
+%% Rest of the message are having invalid lenght.
+decode_l(_, _, _) -> 
+    {error, invalid_remaining_length}.
+
+%% Encode Length
+encode_l(L) 
+  when (L > ?MAX_LENGTH) ->
+    {error, invalid_length};
+encode_l(L) ->
+    encode_l(<<>>, {L div 128, L rem 128}).
+
+encode_l(Bin, {0, RBits}) ->
+    list_to_binary([Bin, <<0:1, RBits:7>>]);
+encode_l(Bin, {RLength, RBits}) ->
+    encode_l(list_to_binary([Bin, <<1:1, RBits:7>>]), {RLength div 128, RLength rem 128}).
