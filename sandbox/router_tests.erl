@@ -15,57 +15,75 @@
 -module(router_tests).
 -include_lib("eunit/include/eunit.hrl").
 
-%% Tests for router:decode_l
-decode_length_0_test() ->
+%% Tests for router:get_type
+get_type_connect_test() ->
+    ?assert({ok, connect} =:=  router:get_type(<<1:4, 23400>>)).
+get_type_conack_test() ->
+    ?assert({ok, connack} =:=  router:get_type(<<2:4, 23400>>)).
+get_type_publish_test() ->
+    ?assert({ok, publish} =:=  router:get_type(<<3:4, 23400>>)).
+get_type_puback_test() ->
+    ?assert({ok, puback} =:=  router:get_type(<<4:4, 23400>>)).
+get_type_pubrec_test() ->
+    ?assert({ok, pubrec} =:=  router:get_type(<<5:4, 23400>>)).
+get_type_pubrel_test() ->
+    ?assert({ok, pubrel} =:=  router:get_type(<<6:4, 23400>>)).
+get_type_pubcomp_test() ->
+    ?assert({ok, pubcomp} =:=  router:get_type(<<7:4, 23400>>)).
+get_type_subscribe_test() ->
+    ?assert({ok, subscribe} =:=  router:get_type(<<8:4, 23400>>)).
+get_type_suback_test() ->
+    ?assert({ok, suback} =:=  router:get_type(<<9:4, 23400>>)).
+get_type_unsubscribe_test() ->
+    ?assert({ok, unsubscribe} =:=  router:get_type(<<10:4, 23400>>)).
+get_type_unsuback_test() ->
+    ?assert({ok, unsuback} =:=  router:get_type(<<11:4, 23400>>)).
+get_type_pingreq_test() ->
+    ?assert({ok, pingreq} =:=  router:get_type(<<12:4, 23400>>)).
+get_type_pingresp_test() ->
+    ?assert({ok, pingresp} =:=  router:get_type(<<13:4, 23400>>)).
+get_type_disconnect_test() ->
+    ?assert({ok, disconnect} =:=  router:get_type(<<14:4, 23400>>)).
+
+%% Tests for router:get_remaining_bin
+get_remaining_bin_0_test() ->
     ?assert({ok, 
-	     {remaining_length, 0}, 
-	     {remaining_binary, <<>>}} =:= router:decode_l(<<0>>)).
-decode_length_65_test() ->
+	     {remaining_binary, <<>>}} =:= router:get_remaining_bin(<<0>>)).
+get_remaining_bin_65_test() ->
     ?assert({ok, 
-	     {remaining_length, 65}, 
-	     {remaining_binary, <<1:520>>}} =:= router:decode_l(<<65, 1:520>>)).
-decode_length_127_test() ->
+	     {remaining_binary, <<1:520>>}} =:= router:get_remaining_bin(<<65, 1:520>>)).
+get_remaining_bin_127_test() ->
     ?assert({ok, 
-	     {remaining_length, 127}, 
-	     {remaining_binary, <<1:1016>>}} =:= router:decode_l(<<127, 1:1016>>)).
-decode_length_128_test() ->
+	     {remaining_binary, <<1:1016>>}} =:= router:get_remaining_bin(<<127, 1:1016>>)).
+get_remaining_bin_128_test() ->
     ?assert({ok, 
-	     {remaining_length, 128}, 
-	     {remaining_binary, <<1:1024>>}} =:= router:decode_l(<<128, 1, 1:1024>>)).
-decode_length_8192_test() ->
+	     {remaining_binary, <<1:1024>>}} =:= router:get_remaining_bin(<<128, 1, 1:1024>>)).
+get_remaining_bin_8192_test() ->
     ?assert({ok, 
-	     {remaining_length, 8192}, 
-	     {remaining_binary, <<1:65536>>}} =:= router:decode_l(<<128, 64, 1:65536>>)).
-decode_length_16383_test() ->
+	     {remaining_binary, <<1:65536>>}} =:= router:get_remaining_bin(<<128, 64, 1:65536>>)).
+get_remaining_bin_16383_test() ->
     ?assert({ok, 
-	     {remaining_length, 16383}, 
-	     {remaining_binary, <<1:131064>>}} =:= router:decode_l(<<255, 127, 1:131064>>)).
-decode_length_1048575_test() ->
+	     {remaining_binary, <<1:131064>>}} =:= router:get_remaining_bin(<<255, 127, 1:131064>>)).
+get_remaining_bin_1048575_test() ->
     ?assert({ok, 
-	     {remaining_length, 1048575}, 
-	     {remaining_binary, <<1:8388600>>}} =:= router:decode_l(<<255, 255, 63, 1:8388600>>)).
-decode_length_2097151_test() ->
+	     {remaining_binary, <<1:8388600>>}} =:= router:get_remaining_bin(<<255, 255, 63, 1:8388600>>)).
+get_remaining_bin_2097151_test() ->
     ?assert({ok, 
-	     {remaining_length, 2097151}, 
-	     {remaining_binary, <<1:16777208>>}} =:= router:decode_l(<<255, 255, 127, 1:16777208>>)).
-decode_length_2097152_test() ->
+	     {remaining_binary, <<1:16777208>>}} =:= router:get_remaining_bin(<<255, 255, 127, 1:16777208>>)).
+get_remaining_bin_2097152_test() ->
     ?assert({ok, 
-	     {remaining_length, 2097152}, 
-	     {remaining_binary, <<1:16777216>>}} =:= router:decode_l(<<128, 128, 128, 1, 1:16777216>>)).
-decode_length_134217727_test() ->
+	     {remaining_binary, <<1:16777216>>}} =:= router:get_remaining_bin(<<128, 128, 128, 1, 1:16777216>>)).
+get_remaining_bin_134217727_test() ->
     ?assert({ok, 
-	     {remaining_length, 134217727}, 
-	     {remaining_binary, <<1:1073741816>>}} =:= router:decode_l(<<255, 255, 255, 63, 1:1073741816>>)).
-decode_length_134217728_test() ->
+	     {remaining_binary, <<1:1073741816>>}} =:= router:get_remaining_bin(<<255, 255, 255, 63, 1:1073741816>>)).
+get_remaining_bin_134217728_test() ->
     ?assert({ok, 
-	     {remaining_length, 134217728}, 
-	     {remaining_binary, <<1:1073741824>>}} =:= router:decode_l(<<128, 128, 128, 64, 1:1073741824>>)).
-decode_length_268435455_test() ->
+	     {remaining_binary, <<1:1073741824>>}} =:= router:get_remaining_bin(<<128, 128, 128, 64, 1:1073741824>>)).
+get_remaining_bin_268435455_test() ->
     ?assert({ok, 
-	     {remaining_length, 268435455}, 
-	     {remaining_binary, <<1:2147483640>>}} =:= router:decode_l(<<255, 255, 255, 127, 1:2147483640>>)).
-decode_length_268435456_test() ->
-    ?assert({error, invalid_remaining_length} =:= router:decode_l(<<255, 255, 255, 127, 1:2147483648>>)).
+	     {remaining_binary, <<1:2147483640>>}} =:= router:get_remaining_bin(<<255, 255, 255, 127, 1:2147483640>>)).
+get_remaining_bin_268435456_test() ->
+    ?assert({error, invalid_remaining_length} =:= router:get_remaining_bin(<<255, 255, 255, 127, 1:2147483648>>)).
 
 %% Test for router:encode_l
 encode_length_0_test() ->
@@ -98,39 +116,3 @@ encode_length_268435455_test() ->
     ?assert(<<255, 255, 255, 127>> =:= router:encode_l(268435455)).
 encode_length_268435456_test() ->
     ?assert({error, invalid_length} =:= router:encode_l(268435456)).
-
-
-
-%% Tests for router:get_type
-get_type_connect_test() ->
-    ?assert({ok, connect} =:=  router:get_type(<<1:4, 23400>>)).
-get_type_conack_test() ->
-    ?assert({ok, connack} =:=  router:get_type(<<2:4, 23400>>)).
-get_type_publish_test() ->
-    ?assert({ok, publish} =:=  router:get_type(<<3:4, 23400>>)).
-get_type_puback_test() ->
-    ?assert({ok, puback} =:=  router:get_type(<<4:4, 23400>>)).
-get_type_pubrec_test() ->
-    ?assert({ok, pubrec} =:=  router:get_type(<<5:4, 23400>>)).
-get_type_pubrel_test() ->
-    ?assert({ok, pubrel} =:=  router:get_type(<<6:4, 23400>>)).
-get_type_pubcomp_test() ->
-    ?assert({ok, pubcomp} =:=  router:get_type(<<7:4, 23400>>)).
-get_type_subscribe_test() ->
-    ?assert({ok, subscribe} =:=  router:get_type(<<8:4, 23400>>)).
-get_type_suback_test() ->
-    ?assert({ok, suback} =:=  router:get_type(<<9:4, 23400>>)).
-get_type_unsubscribe_test() ->
-    ?assert({ok, unsubscribe} =:=  router:get_type(<<10:4, 23400>>)).
-get_type_unsuback_test() ->
-    ?assert({ok, unsuback} =:=  router:get_type(<<11:4, 23400>>)).
-get_type_pingreq_test() ->
-    ?assert({ok, pingreq} =:=  router:get_type(<<12:4, 23400>>)).
-get_type_pingresp_test() ->
-    ?assert({ok, pingresp} =:=  router:get_type(<<13:4, 23400>>)).
-get_type_disconnect_test() ->
-    ?assert({ok, disconnect} =:=  router:get_type(<<14:4, 23400>>)).
-get_type_invalid_15_test() ->
-    ?assert({error, invalid_msg_type} =:=  router:get_type(<<15:4, 23400>>)).
-get_type_invalid_0_test() ->
-    ?assert({error, invalid_msg_type} =:=  router:get_type(<<0:4, 23400>>)).
