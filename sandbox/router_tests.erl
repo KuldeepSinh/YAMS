@@ -17,15 +17,15 @@
 
 %% Tests for router:validate_type
 validate_type_less_than_1_test() ->
-    ?assert({error, invalid_msg_type, <<0:4, 23400>>} =:= router:validate_type(<<0:4, 23400>>)).
+    ?assert({error, invalid_msg_type} =:= router:validate_type(<<0:4, 23400>>)).
 validate_type_more_than_14_test() ->
-    ?assert({error, invalid_msg_type, <<15:4, 23400>>} =:=  router:validate_type(<<15:4, 23400>>)).
+    ?assert({error, invalid_msg_type} =:=  router:validate_type(<<15:4, 23400>>)).
 validate_type_equal_1_test() ->
-    ?assert({ok, valid_msg_type, <<1:4, 23400>>} =:=  router:validate_type(<<1:4, 23400>>)).
+    ?assert({ok, valid_msg_type} =:=  router:validate_type(<<1:4, 23400>>)).
 validate_type_equal_14_test() ->
-    ?assert({ok, valid_msg_type, <<14:4, 23400>>} =:=  router:validate_type(<<14:4, 23400>>)).
+    ?assert({ok, valid_msg_type} =:=  router:validate_type(<<14:4, 23400>>)).
 validate_type_equal_7_test() ->
-    ?assert({ok, valid_msg_type, <<7:4, 23400>>} =:=  router:validate_type(<<7:4, 23400>>)).
+    ?assert({ok, valid_msg_type} =:=  router:validate_type(<<7:4, 23400>>)).
 
 %% Tests for router:decode_l
 decode_length_0_test() ->

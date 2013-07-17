@@ -17,9 +17,9 @@
 -define(MAX_LENGTH, 268435455).
 
 %% Validate message_type
-validate_type(Bin = <<MT:4, _/binary>>) 
-  when ((MT <1) or (MT > 14)) -> {error, invalid_msg_type, Bin};
-validate_type(Bin) -> {ok, valid_msg_type, Bin}.
+validate_type(<<MT:4, _/binary>>) 
+  when ((MT >=1) and (MT =< 14)) -> {ok, valid_msg_type};
+validate_type(_) -> {error, invalid_msg_type}.
 
 
 %% Decode remaining length (RestBin does not contain FirstByte)
