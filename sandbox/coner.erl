@@ -14,9 +14,9 @@
 
 -module(coner).
 %% Process variable header
--export([validate_proto_name/1, get_flags/1, get_KAT_Payload/1]).
+-export([validate_proto_name/1, get_flags/1, get_kat_payload/1]).
 %% Process payload
--export([split_payload/1, validate_client/1, get_wills/1, get_user/3, get_pwd/4]).
+-export([split_payload/1, validate_client/1, get_wills/1, get_user/3, get_pswd/4]).
 %% CONNACK
 -export([connack/1]).
 
@@ -34,7 +34,7 @@ get_flags(<<Usr:1, Pwd:1, WillR:1, WillQ:2, Will:1, ClnS:1, Rsvd:1, Rest/binary>
     }.
 
 %% extract Keep alive timer and Payload from RestBin
-get_KAT_Payload(<<KAT:16, Payload/binary>>) ->
+get_kat_payload(<<KAT:16, Payload/binary>>) ->
     {
       ok, 
       {kat, KAT}, 
@@ -79,14 +79,14 @@ get_user(0, 1, Payload_list)
     {ok, User}.
 
 %% arguments = (Will, User, Password, Payload_list)
-get_pwd(1, 1, 1, Payload_list) 
+get_pswd(1, 1, 1, Payload_list) 
   when(erlang:length(Payload_list) == 5) ->
-    Pwd = lists:nth(5, Payload_list),
-    {ok, Pwd};    
-get_pwd(0, 1, 1, Payload_list) 
+    Pswd = lists:nth(5, Payload_list),
+    {ok, Pswd};    
+get_pswd(0, 1, 1, Payload_list) 
   when(erlang:length(Payload_list) == 3) ->
-    Pwd = lists:nth(3, Payload_list),
-    {ok, Pwd}.
+    Pswd = lists:nth(3, Payload_list),
+    {ok, Pswd}.
 
 
 %% CONNACK = Acknowledge CONNECT

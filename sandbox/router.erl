@@ -55,7 +55,7 @@ get_remaining_bin(<<0:1, Len:7, RestBin/binary>>, RLength, Multiplier)
       %% {remaining_length, RLength + Len * Multiplier}, 
       %% {remaining_binary, RestBin}      
     };
-%% Rest of the message are having invalid lenght.
+%% Rest of the message is having invalid lenght.
 get_remaining_bin(_, _, _) -> 
     {error, invalid_remaining_length}.
 
