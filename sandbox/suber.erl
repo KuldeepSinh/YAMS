@@ -25,10 +25,10 @@
 %% Argument = First Byte ofthe message
 %% For subscribe
 split_fist_byte(<<8:4, Dup:1, QoS:2, Retain:1>>) ->
-    {ok, Dup, QoS, Retain};
+    {subscribe, Dup, QoS, Retain};
 %% For unsubscribe
 split_fist_byte(<<10:4, Dup:1, QoS:2, Retain:1>>) ->
-    {ok, Dup, QoS, Retain}.
+    {unsubscribe, Dup, QoS, Retain}.
     
 get_id_payload(<<ID:16, Payload/binary>>) ->
     {ok, ID, Payload}.
