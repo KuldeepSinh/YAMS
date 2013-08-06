@@ -19,8 +19,8 @@
 %% Response to the publisher
 -export([puback/1, pubrec/1, pubrel/1, pubcomp/1]).
 
-split_first_byte(<<T:4, Dup:1, QoS:2, Ret:1>>) ->
-    {ok, T, Dup, QoS, Ret}.
+split_first_byte(<<T:4, Dup:1, QoS:2, Rest:1>>) ->
+    {ok, T, Dup, QoS, Rest}.
 
 get_topic(<<L:16, Rest/binary>>)
   when(size(Rest) >= L) ->
