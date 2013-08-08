@@ -22,7 +22,7 @@
 %% Response
 -export([suback/3, unsuback/1]).
 
-%% Argument = First Byte ofthe message
+%% Argument = First Byte of the message
 %% For subscribe
 split_fist_byte(<<8:4, Dup:1, QoS:2, Retain:1>>) ->
     {subscribe, Dup, QoS, Retain};
