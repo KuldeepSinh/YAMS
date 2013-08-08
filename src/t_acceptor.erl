@@ -16,24 +16,24 @@
 %%% @author  KuldeepSinh Chauhan
 %%% @copyright (C) 2013, 
 %%% @doc
-%%%     This module opens TCP listener socket for incoming client connections.
+%%%     This module opens the acceptor socket for incomming client messages.
 %%% @end
 %%% Created :  8 Aug 2013 by  KuldeepSinh Chauhan
 %%%-------------------------------------------------------------------
--module(t_listner).
+-module(t_acceptor).
 
 -behaviour(gen_server).
 
 %% API
--export([start_link/0, start_link/1, stop/0]).
+-export([start_link/1]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
 	 terminate/2, code_change/3]).
 
 -define(SERVER, ?MODULE). 
--define(DEFAULT_PORT, 8789).
--record(state, {port, lsock}).
+
+%% -record(state, {}).
 
 %%%===================================================================
 %%% API
@@ -41,36 +41,13 @@
 
 %%--------------------------------------------------------------------
 %% @doc
-%% Starts the server using default port = 8789
-%%
-%% @spec start_link() -> {ok, Pid}
-%% @end
-%%--------------------------------------------------------------------
-start_link() ->
-    start_link(?DEFAULT_PORT).
-
-%%--------------------------------------------------------------------
-%% @doc
 %% Starts the server
 %%
-%% @spec start_link(Port::integer()) -> {ok, Pid}
-%% where
-%%   Pid = pid()
+%% @spec start_link() -> {ok, Pid} | ignore | {error, Error}
 %% @end
 %%--------------------------------------------------------------------
-start_link(Port) ->
-    gen_server:start_link({local, ?SERVER}, ?MODULE, [Port], []).
-
-
-%%--------------------------------------------------------------------
-%% @doc
-%% Stops the server
-%%
-%% @spec stop() -> ok
-%% @end
-%%--------------------------------------------------------------------
-stop() ->
-    gen_server:cast(?SERVER, stop).
+start_link(LSock) ->
+    gen_server:start_link({local, ?SERVER}, ?MODULE, [LSock], []).
 
 %%%===================================================================
 %%% gen_server callbacks
@@ -87,9 +64,9 @@ stop() ->
 %%                     {stop, Reason}
 %% @end
 %%--------------------------------------------------------------------
-init([Port]) ->
-    {ok, LSock} = gen_tcp:listen(Port, [{active, true}]),
-    {ok, #state{port=Port, lsock=LSock}, 0}.
+init([LSock]) ->
+    gen_tcp:accept(LSock).
+    
 
 %%--------------------------------------------------------------------
 %% @private
@@ -119,8 +96,8 @@ handle_call(_Request, _From, State) ->
 %%                                  {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
-handle_cast(stop, State) ->
-    {stop, normal, State}.
+handle_cast(_Msg, State) ->
+    {noreply, State}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -132,8 +109,8 @@ handle_cast(stop, State) ->
 %%                                   {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
-handle_info(timeout, #state{lsock = LSock} = State) ->
-    {ok, _Sock} = t_acceptor:start_link(LSock),
+handle_info({tcp, Socket, RawData}, State) ->
+    gen_tcp:send(Socket, RawData),
     {noreply, State}.
 
 %%--------------------------------------------------------------------
