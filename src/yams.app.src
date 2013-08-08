@@ -1,0 +1,12 @@
+{application, yams,
+ [
+  {description, "Yet Another MQTT Server - in Erlang."},
+  {vsn, git},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib
+                 ]},
+  {mod, { yams_app, []}},
+  {env, []}
+ ]}.
