@@ -20,7 +20,7 @@
 %%% @end
 %%% Created :  8 Aug 2013 by  KuldeepSinh Chauhan
 %%%-------------------------------------------------------------------
--module(t_listner).
+-module(t_listener).
 
 -behaviour(gen_server).
 

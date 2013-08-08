@@ -109,8 +109,8 @@ handle_cast(_Msg, State) ->
 %%                                   {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
-handle_info({tcp, Socket, RawData}, State) ->
-    gen_tcp:send(Socket, RawData),
+handle_info({tcp, Socket, _RawData}, State) ->
+    gen_tcp:send(Socket, <<"Hello, World">>),
     {noreply, State}.
 
 %%--------------------------------------------------------------------
