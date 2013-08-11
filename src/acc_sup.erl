@@ -76,8 +76,8 @@ init([]) ->
     Shutdown = 2000,
     Type = worker,
 
-    Acceptor = {t_acceptor, {t_acceptor, start_link, []},
-	      Restart, Shutdown, Type, [t_acceptor]},
+    Acceptor = {acceptor, {acceptor, start_link, []},
+	      Restart, Shutdown, Type, [acceptor]},
     {ok, {SupFlags, [Acceptor]}}.
 
 %%%===================================================================

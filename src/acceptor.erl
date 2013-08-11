@@ -20,7 +20,7 @@
 %%% @end
 %%% Created :  8 Aug 2013 by  KuldeepSinh Chauhan
 %%%-------------------------------------------------------------------
--module(t_acceptor).
+-module(acceptor).
 
 -behaviour(gen_server).
 

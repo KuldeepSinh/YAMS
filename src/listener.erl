@@ -20,7 +20,7 @@
 %%% @end
 %%% Created : 8 Aug 2013 by KuldeepSinh Chauhan
 %%%-------------------------------------------------------------------
--module(t_listener).
+-module(listener).
 
 -behaviour(gen_server).
 
@@ -165,5 +165,5 @@ code_change(_OldVsn, State, _Extra) ->
 %%% Internal functions
 %%%===================================================================
 pool_acceptors(LSock) ->
-    [t_acceptor:create(LSock) || _ <- lists:seq(1,3) ],
+    [acceptor:create(LSock) || _ <- lists:seq(1,3) ],
     ok.

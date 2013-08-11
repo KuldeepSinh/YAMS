@@ -45,12 +45,12 @@ init([]) ->
 
     LisSup = {lis_sup, {lis_sup, start_link, []}, Restart, Shutdown, Type, [lis_sup]},
     AccSup = {acc_sup, {acc_sup, start_link, []}, Restart, Shutdown, Type, [acc_sup]},
+    FSMSup = {fsm_sup, {fsm_sup, start_link, []}, Restart, Shutdown, Type, [fsm_sup]},
 
-    %%Here, order of given supervisors is very important.
-    %%AccSup is deliberately ordered prior to LisSup,
-    %%Reason: acceptor sockets are created from listener sockets.
-    %%so, the AccSup should be ready before LisSup.
-    {ok, {SupFlags, [AccSup, LisSup]}}.
+    %%In the following list, the order of given supervisors is very important.
+    %%Starting from the lowest level, supervisors will be started upto the highest level, 
+    %%ensuring, lower level Supervisor is ready before it is used by the higher level.
+    {ok, {SupFlags, [FSMSup, AccSup, LisSup]}}.
 
 %% ===================================================================
 %% Non-API functions
