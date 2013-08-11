@@ -16,7 +16,7 @@
 %%% @author  KuldeepSinh Chauhan
 %%% @copyright (C) 2013, 
 %%% @doc
-%%%     This module opens the acceptor socket for incomming client messages.
+%%%     This module opens the acceptor-socket for incomming client messages.
 %%% @end
 %%% Created :  8 Aug 2013 by  KuldeepSinh Chauhan
 %%%-------------------------------------------------------------------
@@ -25,7 +25,7 @@
 -behaviour(gen_server).
 
 %% API
--export([start_link/1]).
+-export([start_link/1, create/1]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -33,7 +33,7 @@
 
 -define(SERVER, ?MODULE). 
 
-%% -record(state, {}).
+-record(state, {asock}).
 
 %%%===================================================================
 %%% API
@@ -49,6 +49,8 @@
 start_link(LSock) ->
     gen_server:start_link({local, ?SERVER}, ?MODULE, [LSock], []).
 
+create(LSock) ->
+    acc_sup:start_child(LSock).
 %%%===================================================================
 %%% gen_server callbacks
 %%%===================================================================
@@ -64,9 +66,10 @@ start_link(LSock) ->
 %%                     {stop, Reason}
 %% @end
 %%--------------------------------------------------------------------
-init([LSock]) ->
-    gen_tcp:accept(LSock).
-    
+init([LSock]) ->   
+    {ok, ASock} = gen_tcp:accept(LSock),
+    spawn_link(fun() -> handle(ASock) end),
+    {ok, #state{asock = ASock}}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -109,8 +112,7 @@ handle_cast(_Msg, State) ->
 %%                                   {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
-handle_info({tcp, Socket, _RawData}, State) ->
-    gen_tcp:send(Socket, <<"Hello, World">>),
+handle_info(_Info, State) ->
     {noreply, State}.
 
 %%--------------------------------------------------------------------
@@ -141,3 +143,10 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
+handle(ASock) ->
+    inet:setopts(ASock, [{active, once}]),
+    receive
+	{tcp, ASock, Msg} ->
+	    gen_tcp:send(ASock, Msg),
+	    handle(ASock)
+    end.

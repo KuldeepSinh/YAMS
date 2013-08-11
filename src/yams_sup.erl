@@ -22,9 +22,6 @@
 %% Supervisor callbacks
 -export([init/1]).
 
-%% Helper macro for declaring children of supervisor
--define(CHILD(I, Type), {I, {I, start_link, []}, permanent, 5000, Type, [I]}).
-
 %% ===================================================================
 %% API functions
 %% ===================================================================
@@ -37,5 +34,24 @@ start_link() ->
 %% ===================================================================
 
 init([]) ->
-    {ok, { {one_for_one, 5, 10}, []} }.
+    RestartStrategy = one_for_one,
+    MaxRestarts = 0,
+    MaxSecondsBetweenRestarts = 1,
+    SupFlags = {RestartStrategy, MaxRestarts, MaxSecondsBetweenRestarts},
 
+    Restart = permanent,
+    Shutdown = infinity,
+    Type = supervisor,
+
+    LisSup = {lis_sup, {lis_sup, start_link, []}, Restart, Shutdown, Type, [lis_sup]},
+    AccSup = {acc_sup, {acc_sup, start_link, []}, Restart, Shutdown, Type, [acc_sup]},
+
+    %%Here, order of given supervisors is very important.
+    %%AccSup is deliberately ordered prior to LisSup,
+    %%Reason: acceptor sockets are created from listener sockets.
+    %%so, the AccSup should be ready before LisSup.
+    {ok, {SupFlags, [AccSup, LisSup]}}.
+
+%% ===================================================================
+%% Non-API functions
+%% ===================================================================

@@ -13,12 +13,12 @@
 %% limitations under the License.
 
 %%%-------------------------------------------------------------------
-%%% @author  KuldeepSinh Chauhan
-%%% @copyright (C) 2013, 
+%%% @author KuldeepSinh Chauhan
+%%% @copyright (C) 2013,
 %%% @doc
-%%%     This module opens TCP listener socket for incoming client connections.
+%%% This module opens TCP listener socket for incoming client connections.
 %%% @end
-%%% Created :  8 Aug 2013 by  KuldeepSinh Chauhan
+%%% Created : 8 Aug 2013 by KuldeepSinh Chauhan
 %%%-------------------------------------------------------------------
 -module(t_listener).
 
@@ -29,9 +29,9 @@
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
-	 terminate/2, code_change/3]).
+terminate/2, code_change/3]).
 
--define(SERVER, ?MODULE). 
+-define(SERVER, ?MODULE).
 -define(DEFAULT_PORT, 8789).
 -record(state, {port, lsock}).
 
@@ -55,7 +55,7 @@ start_link() ->
 %%
 %% @spec start_link(Port::integer()) -> {ok, Pid}
 %% where
-%%   Pid = pid()
+%% Pid = pid()
 %% @end
 %%--------------------------------------------------------------------
 start_link(Port) ->
@@ -82,13 +82,13 @@ stop() ->
 %% Initializes the server
 %%
 %% @spec init(Args) -> {ok, State} |
-%%                     {ok, State, Timeout} |
-%%                     ignore |
-%%                     {stop, Reason}
+%% {ok, State, Timeout} |
+%% ignore |
+%% {stop, Reason}
 %% @end
 %%--------------------------------------------------------------------
 init([Port]) ->
-    {ok, LSock} = gen_tcp:listen(Port, [{active, true}]),
+    {ok, LSock} = gen_tcp:listen(Port, [{active, false}]),
     {ok, #state{port=Port, lsock=LSock}, 0}.
 
 %%--------------------------------------------------------------------
@@ -97,12 +97,12 @@ init([Port]) ->
 %% Handling call messages
 %%
 %% @spec handle_call(Request, From, State) ->
-%%                                   {reply, Reply, State} |
-%%                                   {reply, Reply, State, Timeout} |
-%%                                   {noreply, State} |
-%%                                   {noreply, State, Timeout} |
-%%                                   {stop, Reason, Reply, State} |
-%%                                   {stop, Reason, State}
+%% {reply, Reply, State} |
+%% {reply, Reply, State, Timeout} |
+%% {noreply, State} |
+%% {noreply, State, Timeout} |
+%% {stop, Reason, Reply, State} |
+%% {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
 handle_call(_Request, _From, State) ->
@@ -115,8 +115,8 @@ handle_call(_Request, _From, State) ->
 %% Handling cast messages
 %%
 %% @spec handle_cast(Msg, State) -> {noreply, State} |
-%%                                  {noreply, State, Timeout} |
-%%                                  {stop, Reason, State}
+%% {noreply, State, Timeout} |
+%% {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
 handle_cast(stop, State) ->
@@ -128,12 +128,12 @@ handle_cast(stop, State) ->
 %% Handling all non call/cast messages
 %%
 %% @spec handle_info(Info, State) -> {noreply, State} |
-%%                                   {noreply, State, Timeout} |
-%%                                   {stop, Reason, State}
+%% {noreply, State, Timeout} |
+%% {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
 handle_info(timeout, #state{lsock = LSock} = State) ->
-    {ok, _Sock} = t_acceptor:start_link(LSock),
+    ok = pool_acceptors(LSock),
     {noreply, State}.
 
 %%--------------------------------------------------------------------
@@ -164,3 +164,6 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
+pool_acceptors(LSock) ->
+    [t_acceptor:create(LSock) || _ <- lists:seq(1,3) ],
+    ok.
