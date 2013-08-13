@@ -25,7 +25,7 @@
 -behaviour(gen_server).
 
 %% API
--export([start_link/1, create/1]).
+-export([start_link/1, create/1, pool_children/2]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -33,7 +33,7 @@
 
 -define(SERVER, ?MODULE). 
 
--record(state, {asock}).
+-record(state, {socket}).
 
 %%%===================================================================
 %%% API
@@ -51,6 +51,9 @@ start_link(LSock) ->
 
 create(LSock) ->
     acc_sup:start_child(LSock).
+
+pool_children(LSock, Count) ->
+    acc_sup:pool_children(LSock, Count).
 %%%===================================================================
 %%% gen_server callbacks
 %%%===================================================================
@@ -67,9 +70,9 @@ create(LSock) ->
 %% @end
 %%--------------------------------------------------------------------
 init([LSock]) ->   
-    {ok, ASock} = gen_tcp:accept(LSock),
-    spawn_link(fun() -> handle(ASock) end),
-    {ok, #state{asock = ASock}}.
+    gen_server:cast(self(), accept),
+    {ok, #state{socket=LSock}}.
+    
 
 %%--------------------------------------------------------------------
 %% @private
@@ -99,8 +102,17 @@ handle_call(_Request, _From, State) ->
 %%                                  {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
+
+handle_cast(accept, #state{socket = LSock} = State) ->
+    {ok, ASock} = gen_tcp:accept(LSock),
+    create(LSock),
+    Pid = spawn_link(fun() -> handle(ASock) end),
+    gen_tcp:controlling_process(ASock, Pid),
+    {noreply, State};
 handle_cast(_Msg, State) ->
     {noreply, State}.
+
+
 
 %%--------------------------------------------------------------------
 %% @private

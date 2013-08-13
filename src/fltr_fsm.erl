@@ -28,12 +28,16 @@
 -export([start_link/0]).
 
 %% gen_fsm callbacks
--export([init/1, state_name/2, state_name/3, handle_event/3,
-	 handle_sync_event/4, handle_info/3, terminate/3, code_change/4]).
+%% states
+-export([init/1, raw/2, state_name/3]).
+%% events
+-export([scan/2, handle_event/3, handle_sync_event/4]). 
+%% others
+-export([handle_info/3, terminate/3, code_change/4]).
 
 -define(SERVER, ?MODULE).
 
--record(state, {}).
+-record(state, {asock, msg}).
 
 %%%===================================================================
 %%% API
@@ -69,8 +73,11 @@ start_link() ->
 %% @end
 %%--------------------------------------------------------------------
 init([]) ->
-    {ok, state_name, #state{}}.
+    {ok, raw, #state{}}.
 
+
+scan(ASock, RawMsg) ->
+    gen_fsm:send_event(?SERVER, {scan, ASock, RawMsg}).
 %%--------------------------------------------------------------------
 %% @private
 %% @doc
@@ -86,7 +93,7 @@ init([]) ->
 %%                   {stop, Reason, NewState}
 %% @end
 %%--------------------------------------------------------------------
-state_name(_Event, State) ->
+raw({scan, _ASock, _RawMsg}, State) ->
     {next_state, state_name, State}.
 
 %%--------------------------------------------------------------------

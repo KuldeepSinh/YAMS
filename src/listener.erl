@@ -90,6 +90,7 @@ stop() ->
 init([Port]) ->
     {ok, LSock} = gen_tcp:listen(Port, [{active, false}]),
     {ok, #state{port=Port, lsock=LSock}, 0}.
+    %spawn(fun() -> acceptor:create(LSock) end).
 
 %%--------------------------------------------------------------------
 %% @private
@@ -133,7 +134,8 @@ handle_cast(stop, State) ->
 %% @end
 %%--------------------------------------------------------------------
 handle_info(timeout, #state{lsock = LSock} = State) ->
-    ok = pool_acceptors(LSock),
+    %spawn(fun() -> acceptor:create(LSock) end),
+    pool_acceptors(LSock, 20),
     {noreply, State}.
 
 %%--------------------------------------------------------------------
@@ -164,6 +166,5 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
-pool_acceptors(LSock) ->
-    [acceptor:create(LSock) || _ <- lists:seq(1,3) ],
-    ok.
+pool_acceptors(LSock, Count) ->
+    acceptor:pool_children(LSock, Count).
