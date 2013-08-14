@@ -120,19 +120,16 @@ handle_cast(_Msg, State) ->
 %%--------------------------------------------------------------------
 handle_info(timeout, #state{socket = LSock} = State) ->
     % accept client connection
-    {ok, _ASock} = gen_tcp:accept(LSock),
+    {ok, ASock} = gen_tcp:accept(LSock),
     % create a new acceptor
     create(LSock),
+    % spawn message handler.
+    Pid = spawn_link(fun() -> echo_message(ASock) end),
+    % transfer control to the spawned process, so that it can reply the client.
+    gen_tcp:controlling_process(ASock, Pid),
     {noreply, State};
-handle_info({tcp, Socket, Msg}, State) ->
-    spawn_link(fun() ->
-		       % pull first message from the queue.
-		       inet:setopts(Socket, [binary, {active, once}]),
-		       % echo message back to the client.
-		       gen_tcp:send(Socket, Msg)
-	       end),
-    {noreply, State};
-handle_info({tcp_closed, _Socket}, State) ->
+handle_info({tcp_closed, ASock}, State) ->
+    gen_tcp:close(ASock), 
     {stop, normal, State};
 handle_info(_Info, State) ->
     {noreply, State}.
@@ -165,3 +162,10 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
+echo_message(ASock) ->
+    inet:setopts(ASock, [{active, once}]),
+    receive
+	{tcp, ASock, Msg} ->
+	    gen_tcp:send(ASock, Msg),
+	    echo_message(ASock)
+    end.
