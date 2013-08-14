@@ -25,7 +25,8 @@
 -behaviour(supervisor).
 
 %% API
--export([start_link/0, start_child/1]).
+-export([start_link/0, 
+	 start_child/1]).
 
 %% Supervisor callbacks
 -export([init/1]).
@@ -76,8 +77,7 @@ init([]) ->
     Shutdown = 2000,
     Type = worker,
 
-    Acceptor = {acceptor, {acceptor, start_link, []},
-	      Restart, Shutdown, Type, [acceptor]},
+    Acceptor = {acceptor, {acceptor, start_link, []}, Restart, Shutdown, Type, [acceptor]},
     {ok, {SupFlags, [Acceptor]}}.
 
 %%%===================================================================

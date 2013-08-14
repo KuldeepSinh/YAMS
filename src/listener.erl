@@ -25,11 +25,17 @@
 -behaviour(gen_server).
 
 %% API
--export([start_link/0, start_link/1, stop/0]).
+-export([start_link/0, 
+	 start_link/1, 
+	 stop/0]).
 
 %% gen_server callbacks
--export([init/1, handle_call/3, handle_cast/2, handle_info/2,
-	 terminate/2, code_change/3]).
+-export([init/1, 
+	 handle_call/3, 
+	 handle_cast/2, 
+	 handle_info/2,
+	 terminate/2, 
+	 code_change/3]).
 
 -define(SERVER, ?MODULE).
 -define(DEFAULT_PORT, 8789).
@@ -61,7 +67,6 @@ start_link() ->
 start_link(Port) ->
     gen_server:start_link({local, ?SERVER}, ?MODULE, [Port], []).
 
-
 %%--------------------------------------------------------------------
 %% @doc
 %% Stops the server
@@ -88,9 +93,10 @@ stop() ->
 %% @end
 %%--------------------------------------------------------------------
 init([Port]) ->
+    % start a TCP listener.
     {ok, LSock} = gen_tcp:listen(Port, [binary, {active, false}]),
-    % with 3rd argument = 0, timeout is fired, 
-    % which will be handled by handle_info/2
+    % In following function calls, 3rd argument = 0 fires timeout, 
+    % which will be handled by function handle_info/2
     {ok, #state{port=Port, lsock=LSock}, 0}.
 
 %%--------------------------------------------------------------------
@@ -135,7 +141,6 @@ handle_cast(stop, State) ->
 %% @end
 %%--------------------------------------------------------------------
 handle_info(timeout, #state{lsock = LSock} = State) ->
-    %pool_acceptors(LSock, 3),
     create_acceptor(LSock),
     {noreply, State}.
 

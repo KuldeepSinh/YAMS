@@ -25,11 +25,16 @@
 -behaviour(gen_server).
 
 %% API
--export([start_link/1, create/1]).
+-export([start_link/1, 
+	 create/1]).
 
 %% gen_server callbacks
--export([init/1, handle_call/3, handle_cast/2, handle_info/2,
-	 terminate/2, code_change/3]).
+-export([init/1, 
+	 handle_call/3, 
+	 handle_cast/2, 
+	 handle_info/2,
+	 terminate/2, 
+	 code_change/3]).
 
 -define(SERVER, ?MODULE). 
 
@@ -114,12 +119,16 @@ handle_cast(_Msg, State) ->
 %% @end
 %%--------------------------------------------------------------------
 handle_info(timeout, #state{socket = LSock} = State) ->
+    % accept client connection
     {ok, _ASock} = gen_tcp:accept(LSock),
+    % create a new acceptor
     create(LSock),
     {noreply, State};
 handle_info({tcp, Socket, Msg}, State) ->
-    spawn_link(fun() -> 
+    spawn_link(fun() ->
+		       % pull first message from the queue.
 		       inet:setopts(Socket, [binary, {active, once}]),
+		       % echo message back to the client.
 		       gen_tcp:send(Socket, Msg)
 	       end),
     {noreply, State};
