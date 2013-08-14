@@ -132,6 +132,8 @@ handle_info({tcp, Socket, Msg}, State) ->
 		       gen_tcp:send(Socket, Msg)
 	       end),
     {noreply, State};
+handle_info({tcp_closed, _Socket}, State) ->
+    {stop, normal, State};
 handle_info(_Info, State) ->
     {noreply, State}.
 

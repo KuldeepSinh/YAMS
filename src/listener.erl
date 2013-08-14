@@ -141,7 +141,8 @@ handle_cast(stop, State) ->
 %% @end
 %%--------------------------------------------------------------------
 handle_info(timeout, #state{lsock = LSock} = State) ->
-    create_acceptor(LSock),
+    %create_acceptor(LSock),
+    pool_acceptors(LSock, 10),
     {noreply, State}.
 
 %%--------------------------------------------------------------------
@@ -172,11 +173,11 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
-%pool_acceptors(LSock, Count) ->
-%    [acceptor:create(LSock) || _ <- lists:seq(1, Count)],
-%    ok.
-
-create_acceptor(LSock) ->
-    acceptor:create(LSock),
+pool_acceptors(LSock, Count) ->
+    [acceptor:create(LSock) || _ <- lists:seq(1, Count)],
     ok.
+
+%create_acceptor(LSock) ->
+%    acceptor:create(LSock),
+%    ok.
     
