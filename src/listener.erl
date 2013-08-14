@@ -88,7 +88,7 @@ stop() ->
 %% @end
 %%--------------------------------------------------------------------
 init([Port]) ->
-    {ok, LSock} = gen_tcp:listen(Port, [binary, {active, true}]),
+    {ok, LSock} = gen_tcp:listen(Port, [binary, {active, false}]),
     % with 3rd argument = 0, timeout is fired, 
     % which will be handled by handle_info/2
     {ok, #state{port=Port, lsock=LSock}, 0}.

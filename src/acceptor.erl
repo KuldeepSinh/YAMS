@@ -119,7 +119,7 @@ handle_info(timeout, #state{socket = LSock} = State) ->
     {noreply, State};
 handle_info({tcp, Socket, Msg}, State) ->
     spawn_link(fun() -> 
-		       %inet:setopts(Socket, [binary, {active, once}]),
+		       inet:setopts(Socket, [binary, {active, once}]),
 		       gen_tcp:send(Socket, Msg)
 	       end),
     {noreply, State};
