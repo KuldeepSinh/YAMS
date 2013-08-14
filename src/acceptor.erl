@@ -25,7 +25,7 @@
 -behaviour(gen_server).
 
 %% API
--export([start_link/1, create/1, pool_children/2]).
+-export([start_link/1, create/1]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -47,13 +47,10 @@
 %% @end
 %%--------------------------------------------------------------------
 start_link(LSock) ->
-    gen_server:start_link({local, ?SERVER}, ?MODULE, [LSock], []).
+    gen_server:start_link(?MODULE, [LSock], []).
 
 create(LSock) ->
     acc_sup:start_child(LSock).
-
-pool_children(LSock, Count) ->
-    acc_sup:pool_children(LSock, Count).
 %%%===================================================================
 %%% gen_server callbacks
 %%%===================================================================
@@ -70,8 +67,7 @@ pool_children(LSock, Count) ->
 %% @end
 %%--------------------------------------------------------------------
 init([LSock]) ->   
-    gen_server:cast(self(), accept),
-    {ok, #state{socket=LSock}}.
+    {ok, #state{socket=LSock}, 0}.
     
 
 %%--------------------------------------------------------------------
@@ -102,13 +98,6 @@ handle_call(_Request, _From, State) ->
 %%                                  {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
-
-handle_cast(accept, #state{socket = LSock} = State) ->
-    {ok, ASock} = gen_tcp:accept(LSock),
-    create(LSock),
-    Pid = spawn_link(fun() -> handle(ASock) end),
-    gen_tcp:controlling_process(ASock, Pid),
-    {noreply, State};
 handle_cast(_Msg, State) ->
     {noreply, State}.
 
@@ -124,6 +113,16 @@ handle_cast(_Msg, State) ->
 %%                                   {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
+handle_info(timeout, #state{socket = LSock} = State) ->
+    {ok, _ASock} = gen_tcp:accept(LSock),
+    create(LSock),
+    {noreply, State};
+handle_info({tcp, Socket, Msg}, State) ->
+    spawn_link(fun() -> 
+		       %inet:setopts(Socket, [binary, {active, once}]),
+		       gen_tcp:send(Socket, Msg)
+	       end),
+    {noreply, State};
 handle_info(_Info, State) ->
     {noreply, State}.
 
@@ -155,10 +154,3 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
-handle(ASock) ->
-    inet:setopts(ASock, [{active, once}]),
-    receive
-	{tcp, ASock, Msg} ->
-	    gen_tcp:send(ASock, Msg),
-	    handle(ASock)
-    end.

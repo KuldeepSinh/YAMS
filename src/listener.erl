@@ -29,7 +29,7 @@
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
-terminate/2, code_change/3]).
+	 terminate/2, code_change/3]).
 
 -define(SERVER, ?MODULE).
 -define(DEFAULT_PORT, 8789).
@@ -88,9 +88,10 @@ stop() ->
 %% @end
 %%--------------------------------------------------------------------
 init([Port]) ->
-    {ok, LSock} = gen_tcp:listen(Port, [{active, false}]),
+    {ok, LSock} = gen_tcp:listen(Port, [binary, {active, true}]),
+    % with 3rd argument = 0, timeout is fired, 
+    % which will be handled by handle_info/2
     {ok, #state{port=Port, lsock=LSock}, 0}.
-    %spawn(fun() -> acceptor:create(LSock) end).
 
 %%--------------------------------------------------------------------
 %% @private
@@ -134,8 +135,8 @@ handle_cast(stop, State) ->
 %% @end
 %%--------------------------------------------------------------------
 handle_info(timeout, #state{lsock = LSock} = State) ->
-    %spawn(fun() -> acceptor:create(LSock) end),
-    pool_acceptors(LSock, 20),
+    %pool_acceptors(LSock, 3),
+    acceptor:create(LSock),
     {noreply, State}.
 
 %%--------------------------------------------------------------------
@@ -167,4 +168,5 @@ code_change(_OldVsn, State, _Extra) ->
 %%% Internal functions
 %%%===================================================================
 pool_acceptors(LSock, Count) ->
-    acceptor:pool_children(LSock, Count).
+    [acceptor:create(LSock) || _ <- lists:seq(1, Count)],
+    ok.
