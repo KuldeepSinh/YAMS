@@ -64,7 +64,7 @@ start_link() ->
 %% @doc
 %% Whenever a gen_fsm is started using gen_fsm:start/[3,4] or
 %% gen_fsm:start_link/[3,4], this function is called by the new
-%% process to initialize.
+%% process to initialize..
 %%
 %% @spec init(Args) -> {ok, StateName, State} |
 %%                     {ok, StateName, State, Timeout} |
