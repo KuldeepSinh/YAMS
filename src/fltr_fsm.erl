@@ -29,11 +29,17 @@
 
 %% gen_fsm callbacks
 %% states
--export([init/1, raw/2, state_name/3]).
+-export([init/1, 
+	 raw/2, 
+	 state_name/3]).
 %% events
--export([scan/2, handle_event/3, handle_sync_event/4]). 
+-export([scan/2, 
+	 handle_event/3, 
+	 handle_sync_event/4]). 
 %% others
--export([handle_info/3, terminate/3, code_change/4]).
+-export([handle_info/3, 
+	 terminate/3, 
+	 code_change/4]).
 
 -define(SERVER, ?MODULE).
 
