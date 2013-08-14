@@ -128,8 +128,7 @@ handle_info(timeout, #state{socket = LSock} = State) ->
     % transfer control to the spawned process, so that it can reply the client.
     gen_tcp:controlling_process(ASock, Pid),
     {noreply, State};
-handle_info({tcp_closed, ASock}, State) ->
-    gen_tcp:close(ASock), 
+handle_info({tcp_closed, _ASock}, State) ->
     {stop, normal, State};
 handle_info(_Info, State) ->
     {noreply, State}.
