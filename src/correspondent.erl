@@ -16,11 +16,11 @@
 %%% @author  KuldeepSinh Chauhan
 %%% @copyright (C) 2013, 
 %%% @doc
-%%%
+%%%     This message will send messages back to the acceptor, which in turn will send the message to the client.
 %%% @end
 %%% Created : 15 Aug 2013 by KuldeepSinh Chauhan
 %%%-------------------------------------------------------------------
--module(sender).
+-module(correspondent).
 
 -behaviour(gen_server).
 
@@ -28,8 +28,12 @@
 -export([start_link/0]).
 
 %% gen_server callbacks
--export([init/1, handle_call/3, handle_cast/2, handle_info/2,
-	 terminate/2, code_change/3]).
+-export([init/1, 
+	 handle_call/3, 
+	 handle_cast/2, 
+	 handle_info/2,
+	 terminate/2, 
+	 code_change/3]).
 
 -define(SERVER, ?MODULE). 
 
@@ -47,7 +51,7 @@
 %% @end
 %%--------------------------------------------------------------------
 start_link() ->
-    gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
+    gen_server:start_link(?MODULE, [], []).
 
 %%%===================================================================
 %%% gen_server callbacks

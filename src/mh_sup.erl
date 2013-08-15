@@ -12,6 +12,14 @@
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
 
+%%%-------------------------------------------------------------------
+%%% @author  KuldeepSinh Chauhan
+%%% @copyright (C) 2013, 
+%%% @doc
+%%%     This module will supervise (message) handlers.
+%%% @end
+%%% Created : 10 Aug 2013 by  KuldeepSinh Chauhan
+%%%-------------------------------------------------------------------
 -module(mh_sup).
 
 -behaviour(supervisor).
@@ -25,9 +33,8 @@
 %% ===================================================================
 %% API functions
 %% ===================================================================
-
 start_link() ->
-    supervisor:start_link({local, ?MODULE}, ?MODULE, []).
+    supervisor:start_link({local, ?MODULE},?MODULE, []).
 
 %% ===================================================================
 %% Supervisor callbacks
@@ -45,13 +52,13 @@ init([]) ->
 
     %Suprevisor for message Routers 
     RouterSup = {router_sup, {router_sup, start_link, []}, Restart, Shutdown, Type, [router_sup]},
-    %Suprevisor for message Senders 
-    SenderSup = {sender_sup, {sender_sup, start_link, []}, Restart, Shutdown, Type, [sender_sup]},
+    %Suprevisor for message Correspondents
+    CorrespondentSup = {correspondent_sup, {correspondent_sup, start_link, []}, Restart, Shutdown, Type, [correspondent_sup]},
 
     %%In the following list, the order of given supervisors is very important.
     %%Starting from the lowest level, supervisors will be started upto the highest level, 
     %%ensuring, lower level Supervisor is ready before it is used by the higher level.
-    {ok, {SupFlags, [SenderSup,RouterSup]}}.
+    {ok, {SupFlags, [CorrespondentSup, RouterSup]}}.
 
 %% ===================================================================
 %% Non-API functions

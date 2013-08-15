@@ -12,7 +12,15 @@
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
 
-% Message Receiver : module to accept and handle messages from clients connected over TCP.
+%%%-------------------------------------------------------------------
+%%% @author  KuldeepSinh Chauhan
+%%% @copyright (C) 2013, 
+%%% @doc
+%%%     Message Receiver : module to accept and handle messages from clients connected over TCP.
+%%% @end
+%%% Created : 10 Aug 2013 by  KuldeepSinh Chauhan
+%%%-------------------------------------------------------------------
+
 -module(mr_sup).
 
 -behaviour(supervisor).

@@ -16,11 +16,11 @@
 %%% @author  KuldeepSinh Chauhan
 %%% @copyright (C) 2013, 
 %%% @doc
-%%%     This module will supervise t_acceptor.
+%%%     This module will supervise message senders.
 %%% @end
 %%% Created : 10 Aug 2013 by  KuldeepSinh Chauhan
 %%%-------------------------------------------------------------------
--module(sender_sup).
+-module(correspondent_sup).
 
 -behaviour(supervisor).
 
@@ -77,8 +77,8 @@ init([]) ->
     Shutdown = 2000,
     Type = worker,
 
-    Sender = {sender, {sender, start_link, []}, Restart, Shutdown, Type, [sender]},
-    {ok, {SupFlags, [Sender]}}.
+    Correspondent = {correspondent, {correspondent, start_link, []}, Restart, Shutdown, Type, [correspondent]},
+    {ok, {SupFlags, [Correspondent]}}.
 
 %%%===================================================================
 %%% Internal functions

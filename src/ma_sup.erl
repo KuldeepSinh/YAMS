@@ -16,7 +16,7 @@
 %%% @author  KuldeepSinh Chauhan
 %%% @copyright (C) 2013, 
 %%% @doc
-%%%     This module will supervise t_acceptor.
+%%%     This module will supervise (message) acceptor.
 %%% @end
 %%% Created : 10 Aug 2013 by  KuldeepSinh Chauhan
 %%%-------------------------------------------------------------------
