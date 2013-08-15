@@ -12,7 +12,8 @@
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
 
--module(yams_sup).
+% Message Receiver : module to accept and handle messages from clients connected over TCP.
+-module(mr_sup).
 
 -behaviour(supervisor).
 
@@ -43,15 +44,15 @@ init([]) ->
     Shutdown = infinity,
     Type = supervisor,
 
-    %Suprevisor for Connection Listener 
-    CLSup = {cl_sup, {cl_sup, start_link, []}, Restart, Shutdown, Type, [cl_sup]},
-    %Supervisor for Message Receiver
-    MRSup = {mr_sup, {mr_sup, start_link, []}, Restart, Shutdown, Type, [mr_sup]},
+    %Suprevisor for Message Acceptors 
+    MASup = {ma_sup, {ma_sup, start_link, []}, Restart, Shutdown, Type, [ma_sup]},
+    %Supervisor for Message Handler
+    MHSup = {mh_sup, {mh_sup, start_link, []}, Restart, Shutdown, Type, [mh_sup]},
 
     %%In the following list, the order of given supervisors is very important.
     %%Starting from the lowest level, supervisors will be started upto the highest level, 
     %%ensuring, lower level Supervisor is ready before it is used by the higher level.
-    {ok, {SupFlags, [MRSup, CLSup]}}.
+    {ok, {SupFlags, [MHSup, MASup]}}.
 
 %% ===================================================================
 %% Non-API functions

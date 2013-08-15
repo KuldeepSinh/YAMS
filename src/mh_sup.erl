@@ -12,7 +12,7 @@
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
 
--module(yams_sup).
+-module(mh_sup).
 
 -behaviour(supervisor).
 
@@ -43,15 +43,15 @@ init([]) ->
     Shutdown = infinity,
     Type = supervisor,
 
-    %Suprevisor for Connection Listener 
-    CLSup = {cl_sup, {cl_sup, start_link, []}, Restart, Shutdown, Type, [cl_sup]},
-    %Supervisor for Message Receiver
-    MRSup = {mr_sup, {mr_sup, start_link, []}, Restart, Shutdown, Type, [mr_sup]},
+    %Suprevisor for message Routers 
+    RouterSup = {router_sup, {router_sup, start_link, []}, Restart, Shutdown, Type, [router_sup]},
+    %Suprevisor for message Senders 
+    SenderSup = {sender_sup, {sender_sup, start_link, []}, Restart, Shutdown, Type, [sender_sup]},
 
     %%In the following list, the order of given supervisors is very important.
     %%Starting from the lowest level, supervisors will be started upto the highest level, 
     %%ensuring, lower level Supervisor is ready before it is used by the higher level.
-    {ok, {SupFlags, [MRSup, CLSup]}}.
+    {ok, {SupFlags, [SenderSup,RouterSup]}}.
 
 %% ===================================================================
 %% Non-API functions

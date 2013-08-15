@@ -16,22 +16,22 @@
 %%% @author  KuldeepSinh Chauhan
 %%% @copyright (C) 2013, 
 %%% @doc
-%%%     Suprevises t_listener process.
+%%%     This module will supervise t_acceptor.
 %%% @end
-%%% Created : 11 Aug 2013 by  KuldeepSinh Chauhan
+%%% Created : 10 Aug 2013 by  KuldeepSinh Chauhan
 %%%-------------------------------------------------------------------
--module(lis_sup).
+-module(sender_sup).
 
 -behaviour(supervisor).
 
 %% API
--export([start_link/0]).
+-export([start_link/0, 
+	 start_child/1]).
 
 %% Supervisor callbacks
 -export([init/1]).
 
 -define(SERVER, ?MODULE).
-
 %%%===================================================================
 %%% API functions
 %%%===================================================================
@@ -45,6 +45,9 @@
 %%--------------------------------------------------------------------
 start_link() ->
     supervisor:start_link({local, ?SERVER}, ?MODULE, []).
+
+start_child(LSock) ->
+    supervisor:start_child(?SERVER, [LSock]).
 
 %%%===================================================================
 %%% Supervisor callbacks
@@ -64,7 +67,7 @@ start_link() ->
 %% @end
 %%--------------------------------------------------------------------
 init([]) ->
-    RestartStrategy = one_for_one,
+    RestartStrategy = simple_one_for_one,
     MaxRestarts = 0,
     MaxSecondsBetweenRestarts = 1,
 
@@ -74,10 +77,8 @@ init([]) ->
     Shutdown = 2000,
     Type = worker,
 
-    Listener = {listener, {listener, start_link, []},
-	      Restart, Shutdown, Type, [listener]},
-
-    {ok, {SupFlags, [Listener]}}.
+    Sender = {sender, {sender, start_link, []}, Restart, Shutdown, Type, [sender]},
+    {ok, {SupFlags, [Sender]}}.
 
 %%%===================================================================
 %%% Internal functions

@@ -1,45 +1,25 @@
-%% Copyright 2013 KuldeepSinh Chauhan
-%%
-%% Licensed under the Apache License, Version 2.0 (the "License");
-%% you may not use this file except in compliance with the License.
-%% You may obtain a copy of the License at
-%%
-%% http://www.apache.org/licenses/LICENSE-2.0
-%%
-%% Unless required by applicable law or agreed to in writing, software
-%% distributed under the License is distributed on an "AS IS" BASIS,
-%% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-%% See the License for the specific language governing permissions and
-%% limitations under the License.
-
 %%%-------------------------------------------------------------------
-%%% @author KuldeepSinh Chauhan
-%%% @copyright (C) 2013,
+%%% @author  KuldeepSinh Chauhan
+%%% @copyright (C) 2013, 
 %%% @doc
-%%% This module opens TCP listener socket for incoming client connections.
+%%%
 %%% @end
-%%% Created : 8 Aug 2013 by KuldeepSinh Chauhan
+%%% Created : 15 Aug 2013 by KuldeepSinh Chauhan
 %%%-------------------------------------------------------------------
--module(listener).
+-module(router).
 
 -behaviour(gen_server).
 
 %% API
--export([start_link/0, 
-	 start_link/1, 
-	 stop/0]).
+-export([start_link/0]).
 
 %% gen_server callbacks
--export([init/1, 
-	 handle_call/3, 
-	 handle_cast/2, 
-	 handle_info/2,
-	 terminate/2, 
-	 code_change/3]).
+-export([init/1, handle_call/3, handle_cast/2, handle_info/2,
+	 terminate/2, code_change/3]).
 
--define(SERVER, ?MODULE).
--define(DEFAULT_PORT, 8789).
--record(state, {port, lsock}).
+-define(SERVER, ?MODULE). 
+
+-record(state, {}).
 
 %%%===================================================================
 %%% API
@@ -47,35 +27,13 @@
 
 %%--------------------------------------------------------------------
 %% @doc
-%% Starts the server using default port = 8789
+%% Starts the server
 %%
-%% @spec start_link() -> {ok, Pid}
+%% @spec start_link() -> {ok, Pid} | ignore | {error, Error}
 %% @end
 %%--------------------------------------------------------------------
 start_link() ->
-    start_link(?DEFAULT_PORT).
-
-%%--------------------------------------------------------------------
-%% @doc
-%% Starts the server
-%%
-%% @spec start_link(Port::integer()) -> {ok, Pid}
-%% where
-%% Pid = pid()
-%% @end
-%%--------------------------------------------------------------------
-start_link(Port) ->
-    gen_server:start_link({local, ?SERVER}, ?MODULE, [Port], []).
-
-%%--------------------------------------------------------------------
-%% @doc
-%% Stops the server
-%%
-%% @spec stop() -> ok
-%% @end
-%%--------------------------------------------------------------------
-stop() ->
-    gen_server:cast(?SERVER, stop).
+    gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
 
 %%%===================================================================
 %%% gen_server callbacks
@@ -87,17 +45,13 @@ stop() ->
 %% Initializes the server
 %%
 %% @spec init(Args) -> {ok, State} |
-%% {ok, State, Timeout} |
-%% ignore |
-%% {stop, Reason}
+%%                     {ok, State, Timeout} |
+%%                     ignore |
+%%                     {stop, Reason}
 %% @end
 %%--------------------------------------------------------------------
-init([Port]) ->
-    % start a TCP listener.
-    {ok, LSock} = gen_tcp:listen(Port, [binary, {active, false}]),
-    % In following function calls, 3rd argument = 0 fires timeout, 
-    % which will be handled by function handle_info/2
-    {ok, #state{port=Port, lsock=LSock}, 0}.
+init([]) ->
+    {ok, #state{}}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -105,12 +59,12 @@ init([Port]) ->
 %% Handling call messages
 %%
 %% @spec handle_call(Request, From, State) ->
-%% {reply, Reply, State} |
-%% {reply, Reply, State, Timeout} |
-%% {noreply, State} |
-%% {noreply, State, Timeout} |
-%% {stop, Reason, Reply, State} |
-%% {stop, Reason, State}
+%%                                   {reply, Reply, State} |
+%%                                   {reply, Reply, State, Timeout} |
+%%                                   {noreply, State} |
+%%                                   {noreply, State, Timeout} |
+%%                                   {stop, Reason, Reply, State} |
+%%                                   {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
 handle_call(_Request, _From, State) ->
@@ -123,12 +77,12 @@ handle_call(_Request, _From, State) ->
 %% Handling cast messages
 %%
 %% @spec handle_cast(Msg, State) -> {noreply, State} |
-%% {noreply, State, Timeout} |
-%% {stop, Reason, State}
+%%                                  {noreply, State, Timeout} |
+%%                                  {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
-handle_cast(stop, State) ->
-    {stop, normal, State}.
+handle_cast(_Msg, State) ->
+    {noreply, State}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -136,13 +90,11 @@ handle_cast(stop, State) ->
 %% Handling all non call/cast messages
 %%
 %% @spec handle_info(Info, State) -> {noreply, State} |
-%% {noreply, State, Timeout} |
-%% {stop, Reason, State}
+%%                                   {noreply, State, Timeout} |
+%%                                   {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
-handle_info(timeout, #state{lsock = LSock} = State) ->
-    %create_acceptor(LSock),
-    pool_acceptors(LSock, 10),
+handle_info(_Info, State) ->
     {noreply, State}.
 
 %%--------------------------------------------------------------------
@@ -173,6 +125,18 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
-pool_acceptors(LSock, Count) ->
-    [acceptor:create(LSock) || _ <- lists:seq(1, Count)],
-    ok.
+
+%% Copyright 2013 KuldeepSinh Chauhan
+%%
+%% Licensed under the Apache License, Version 2.0 (the "License");
+%% you may not use this file except in compliance with the License.
+%% You may obtain a copy of the License at
+%%
+%% http://www.apache.org/licenses/LICENSE-2.0
+%%
+%% Unless required by applicable law or agreed to in writing, software
+%% distributed under the License is distributed on an "AS IS" BASIS,
+%% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+%% See the License for the specific language governing permissions and
+%% limitations under the License.
+

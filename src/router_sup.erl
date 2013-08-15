@@ -20,7 +20,7 @@
 %%% @end
 %%% Created : 10 Aug 2013 by  KuldeepSinh Chauhan
 %%%-------------------------------------------------------------------
--module(fsm_sup).
+-module(router_sup).
 
 -behaviour(supervisor).
 
@@ -77,8 +77,8 @@ init([]) ->
     Shutdown = 2000,
     Type = worker,
 
-    FltrFSM = {fltr_fsm, {fltr_fsm, start_link, []}, Restart, Shutdown, Type, [fltr_fsm]},
-    {ok, {SupFlags, [FltrFSM]}}.
+    Router = {router, {router, start_link, []}, Restart, Shutdown, Type, [router]},
+    {ok, {SupFlags, [Router]}}.
 
 %%%===================================================================
 %%% Internal functions
