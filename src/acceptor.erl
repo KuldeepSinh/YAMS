@@ -26,7 +26,8 @@
 
 %% API
 -export([start_link/1, 
-	 create/1]).
+	 create/1,
+	reply/2]).
 
 %% gen_server callbacks
 -export([init/1, 
@@ -38,7 +39,7 @@
 
 -define(SERVER, ?MODULE). 
 
--record(state, {lsock}).
+-record(state, {lsock, asock, apid}).
 
 %%%===================================================================
 %%% API
@@ -53,9 +54,13 @@
 %%--------------------------------------------------------------------
 start_link(LSock) ->
     gen_server:start_link(?MODULE, [LSock], []).
+    
 
 create(LSock) ->
     ma_sup:start_child(LSock).
+
+reply(APid, Msg) ->
+    gen_server:cast(APid, {reply, Msg}).
 %%%===================================================================
 %%% gen_server callbacks
 %%%===================================================================
@@ -72,7 +77,7 @@ create(LSock) ->
 %% @end
 %%--------------------------------------------------------------------
 init([LSock]) ->   
-    {ok, #state{lsock=LSock}, 0}.
+    {ok, #state{lsock=LSock, apid = self()}, 0}.
     
 
 %%--------------------------------------------------------------------
@@ -103,6 +108,10 @@ handle_call(_Request, _From, State) ->
 %%                                  {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
+handle_cast({reply, Msg}, #state{asock = ASock} = State) ->
+    gen_tcp:send(ASock, Msg),
+    {noreply, State};
+
 handle_cast(_Msg, State) ->
     {noreply, State}.
 
@@ -117,14 +126,17 @@ handle_cast(_Msg, State) ->
 %% @end
 %%--------------------------------------------------------------------
 handle_info(timeout, #state{lsock = LSock} = State) ->
-    % accept client connection
+    %% accept client connection
     {ok, ASock} = gen_tcp:accept(LSock),
-    % create a new acceptor
-    create(LSock),
-    % spawn message handler.
-    Pid = spawn_link(fun() -> echo_message(ASock) end),
-    % transfer control to the spawned process, so that it can reply the client.
-    gen_tcp:controlling_process(ASock, Pid),
+    %% make ASock ready to accept first messages
+    inet:setopts(ASock, [{active, once}]),
+    %% create a new acceptor
+    create(LSock),	
+    {noreply,State#state{asock = ASock}};
+handle_info({tcp, ASock, Msg}, #state{apid = APid} = State) ->
+    router:create(APid, Msg),
+    %% make ASock ready to accept next messages
+    inet:setopts(ASock, [{active, once}]),
     {noreply, State};
 handle_info({tcp_closed, _ASock}, State) ->
     {stop, normal, State};
@@ -159,10 +171,3 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
-echo_message(ASock) ->
-    inet:setopts(ASock, [{active, once}]),
-    receive
-	{tcp, ASock, Msg} ->
-	    gen_tcp:send(ASock, Msg),
-	    echo_message(ASock)
-    end.

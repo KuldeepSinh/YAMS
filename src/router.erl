@@ -25,7 +25,8 @@
 -behaviour(gen_server).
 
 %% API
--export([start_link/0]).
+-export([start_link/2,
+	create/2]).
 
 %% gen_server callbacks
 -export([init/1, 
@@ -37,7 +38,7 @@
 
 -define(SERVER, ?MODULE). 
 
--record(state, {}).
+-record(state, {apid, msg}).
 
 %%%===================================================================
 %%% API
@@ -50,9 +51,11 @@
 %% @spec start_link() -> {ok, Pid} | ignore | {error, Error}
 %% @end
 %%--------------------------------------------------------------------
-start_link() ->
-    gen_server:start_link(?MODULE, [], []).
+start_link(APid, Msg) ->
+    gen_server:start_link(?MODULE, [APid, Msg], []).
 
+create(APid, Msg) ->
+    router_sup:start_child(APid, Msg).
 %%%===================================================================
 %%% gen_server callbacks
 %%%===================================================================
@@ -68,8 +71,8 @@ start_link() ->
 %%                     {stop, Reason}
 %% @end
 %%--------------------------------------------------------------------
-init([]) ->
-    {ok, #state{}}.
+init([APid, Msg]) ->
+    {ok, #state{apid = APid, msg = Msg}, 0}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -112,6 +115,9 @@ handle_cast(_Msg, State) ->
 %%                                   {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
+handle_info(timeout, #state{apid = APid, msg = Msg} = State) ->
+    correspondent:create(APid, Msg),
+    {noreply, State};
 handle_info(_Info, State) ->
     {noreply, State}.
 

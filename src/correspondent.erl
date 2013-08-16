@@ -25,7 +25,8 @@
 -behaviour(gen_server).
 
 %% API
--export([start_link/0]).
+-export([start_link/2,
+	create/2]).
 
 %% gen_server callbacks
 -export([init/1, 
@@ -50,9 +51,11 @@
 %% @spec start_link() -> {ok, Pid} | ignore | {error, Error}
 %% @end
 %%--------------------------------------------------------------------
-start_link() ->
-    gen_server:start_link(?MODULE, [], []).
+start_link(APid, Msg) ->
+    gen_server:start_link(?MODULE, [APid, Msg], []).
 
+create(APid, Msg) -> 
+    correspondent_sup:start_child(APid, Msg).
 %%%===================================================================
 %%% gen_server callbacks
 %%%===================================================================
@@ -68,7 +71,8 @@ start_link() ->
 %%                     {stop, Reason}
 %% @end
 %%--------------------------------------------------------------------
-init([]) ->
+init([APid, Msg]) ->
+    acceptor:reply(APid, Msg),
     {ok, #state{}}.
 
 %%--------------------------------------------------------------------
