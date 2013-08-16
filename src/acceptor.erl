@@ -38,7 +38,7 @@
 
 -define(SERVER, ?MODULE). 
 
--record(state, {socket}).
+-record(state, {lsock}).
 
 %%%===================================================================
 %%% API
@@ -72,7 +72,7 @@ create(LSock) ->
 %% @end
 %%--------------------------------------------------------------------
 init([LSock]) ->   
-    {ok, #state{socket=LSock}, 0}.
+    {ok, #state{lsock=LSock}, 0}.
     
 
 %%--------------------------------------------------------------------
@@ -106,8 +106,6 @@ handle_call(_Request, _From, State) ->
 handle_cast(_Msg, State) ->
     {noreply, State}.
 
-
-
 %%--------------------------------------------------------------------
 %% @private
 %% @doc
@@ -118,7 +116,7 @@ handle_cast(_Msg, State) ->
 %%                                   {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
-handle_info(timeout, #state{socket = LSock} = State) ->
+handle_info(timeout, #state{lsock = LSock} = State) ->
     % accept client connection
     {ok, ASock} = gen_tcp:accept(LSock),
     % create a new acceptor
