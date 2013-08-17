@@ -44,14 +44,14 @@ init([]) ->
     Type = supervisor,
 
     %Suprevisor for Connection Listener 
-    CLSup = {cl_sup, {cl_sup, start_link, []}, Restart, Shutdown, Type, [cl_sup]},
-    %Supervisor for Message Receiver
-    MRSup = {mr_sup, {mr_sup, start_link, []}, Restart, Shutdown, Type, [mr_sup]},
+    ListenerSup = {listener_sup, {listener_sup, start_link, []}, Restart, Shutdown, Type, [listener_sup]},
+    %Supervisor for Messages
+    MsgSup = {msg_sup, {msg_sup, start_link, []}, Restart, Shutdown, Type, [msg_sup]},
 
     %%In the following list, the order of given supervisors is very important.
     %%Starting from the lowest level, supervisors will be started upto the highest level, 
     %%ensuring, lower level Supervisor is ready before it is used by the higher level.
-    {ok, {SupFlags, [MRSup, CLSup]}}.
+    {ok, {SupFlags, [MsgSup, ListenerSup]}}.
 
 %% ===================================================================
 %% Non-API functions

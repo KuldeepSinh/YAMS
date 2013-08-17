@@ -21,7 +21,7 @@
 %%% Created : 10 Aug 2013 by  KuldeepSinh Chauhan
 %%%-------------------------------------------------------------------
 
--module(mr_sup).
+-module(msg_sup).
 
 -behaviour(supervisor).
 
@@ -53,14 +53,14 @@ init([]) ->
     Type = supervisor,
 
     %Suprevisor for Message Acceptors 
-    MASup = {ma_sup, {ma_sup, start_link, []}, Restart, Shutdown, Type, [ma_sup]},
-    %Supervisor for Message Handler
     MHSup = {mh_sup, {mh_sup, start_link, []}, Restart, Shutdown, Type, [mh_sup]},
+    %Supervisor for Message Handler
+    AceptorSup = {acceptor_sup, {acceptor_sup, start_link, []}, Restart, Shutdown, Type, [acceptor_sup]},
 
     %%In the following list, the order of given supervisors is very important.
     %%Starting from the lowest level, supervisors will be started upto the highest level, 
-    %%ensuring, lower level Supervisor is ready before it is used by the higher level.
-    {ok, {SupFlags, [MHSup, MASup]}}.
+    %%ensuring, lower level Supervisor is started before it is used by the higher level.
+    {ok, {SupFlags, [MHSup, AceptorSup]}}.
 
 %% ===================================================================
 %% Non-API functions

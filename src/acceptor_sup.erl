@@ -20,7 +20,7 @@
 %%% @end
 %%% Created : 10 Aug 2013 by  KuldeepSinh Chauhan
 %%%-------------------------------------------------------------------
--module(ma_sup).
+-module(acceptor_sup).
 
 -behaviour(supervisor).
 
@@ -73,7 +73,7 @@ init([]) ->
 
     SupFlags = {RestartStrategy, MaxRestarts, MaxSecondsBetweenRestarts},
 
-    Restart = permanent,
+    Restart = temporary,
     Shutdown = 2000,
     Type = worker,
 

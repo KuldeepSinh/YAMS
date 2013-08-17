@@ -27,7 +27,7 @@
 %% API
 -export([start_link/1, 
 	 create/1,
-	reply/2]).
+	 reply/2]).
 
 %% gen_server callbacks
 -export([init/1, 
@@ -57,7 +57,7 @@ start_link(LSock) ->
     
 
 create(LSock) ->
-    ma_sup:start_child(LSock).
+    acceptor_sup:start_child(LSock).
 
 reply(APid, Msg) ->
     gen_server:cast(APid, {reply, Msg}).
