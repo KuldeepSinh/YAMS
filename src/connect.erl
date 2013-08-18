@@ -26,7 +26,8 @@
 
 %% API
 -export([start_link/2,
-	 create/2]).
+	 create/2,
+	 stop/1]).
 
 %% gen_server callbacks
 -export([init/1, 
@@ -57,6 +58,8 @@ start_link(APid, Msg) ->
 create(APid, Msg) ->
     connect_sup:start_child(APid, Msg).
 
+stop(CPid) ->
+    gen_server:call(CPid, stop).
 %%%===================================================================
 %%% gen_server callbacks
 %%%===================================================================
@@ -103,64 +106,10 @@ handle_call(_Request, _From, State) ->
 %%                                  {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
+handle_cast(stop, State ) ->
+    {stop, normal, State};
 handle_cast(_Message, State) ->
    {noreply, State}.
-
-
-
-validate_protocol(#state{msg = <<6:16, "MQIsdp", 3:8, _Rest/binary>>} = State) ->
-    get_flags(State);
-validate_protocol(#state{apid = APid}) ->
-	{ok, Ack} = connack(1),
-    acceptor:reply(APid, Ack).
-get_flags(#state{msg = <<_:72, Usr:1, Pwd:1, WillR:1, WillQ:2, Will:1, ClnS:1, Rsvd:1, _Rest/binary>>} = State) ->
-    NewState = State#state{flags = {con_flags, Usr, Pwd, WillR, WillQ, Will, ClnS, Rsvd}},
-    get_kat_payload(NewState).
-get_kat_payload(#state{msg = <<_:80, KAT:16, Payload/binary>>} = State) ->
-    NewState = State#state{kat = KAT, payload = Payload},
-    split_payload(NewState).
-split_payload(#state{payload = Payload} = State) ->
-    PL = split_pload(Payload),
-    NewState = State#state{payload = lists:reverse(PL)},
-    validate_client(NewState).
-validate_client(#state{apid = APid, payload = [{L, ID} | _]} = State) ->
-    case vldt_client({L, ID}) of
-	{ok, _, _} ->
-	    get_wills(State);
-	{error, _} ->
-		{ok, Ack} = connack(2),
-	    acceptor:reply(APid, Ack)
-    end.
-get_wills(#state{flags = {con_flags, _Usr, _Pwd, _WillR, _WillQ, 1, _ClnS, _Rsvd}, payload = Payload} = State) ->
-    Topic = lists:nth(2, Payload),
-    Msg = lists:nth(3, Payload),
-    NewState = State#state{wills = {Topic, Msg}}, 
-    get_user(NewState).
-get_user(#state{flags  = {con_flags, 1, _Pwd, _WillR, _WillQ, 1, _ClnS, _Rsvd}, payload = Payload} = State) 
-  when(erlang:length(Payload) >= 4) ->
-    User = lists:nth(4, Payload),
-    NewState = State#state{user = User},
-    get_pswd(NewState);
-get_user(#state{flags  = {con_flags, 1, _Pwd, _WillR, _WillQ, 0, _ClnS, _Rsvd}, payload = Payload} = State) 
-  when(erlang:length(Payload) >= 2) ->
-    User = lists:nth(2, Payload),
-    NewState = State#state{user = User},
-    get_pswd(NewState).
-get_pswd(#state{flags  = {con_flags, 1, 1, _WillR, _WillQ, 1, _ClnS, _Rsvd}, payload = Payload} = State) 
-  when(erlang:length(Payload) == 5) ->
-    Pswd = lists:nth(5, Payload),
-    NewState = State#state{pswd = Pswd},
-    authenticate(NewState);
-get_pswd(#state{flags  = {con_flags, 1, 1, _WillR, _WillQ, 0, _ClnS, _Rsvd}, payload = Payload} = State) 
-  when(erlang:length(Payload) == 3) ->
-    Pswd = lists:nth(3, Payload),
-    NewState = State#state{pswd = Pswd},
-    authenticate(NewState).
-authenticate(#state{apid = APid, user = _User, pswd = _Psw}) ->
-    authorize(APid).
-authorize(APid) ->
-	{ok, Ack} = connack(0),
-    acceptor:reply(APid, Ack).
 
 %%--------------------------------------------------------------------
 %% @private
@@ -172,9 +121,10 @@ authorize(APid) ->
 %%                                   {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
-handle_info(timeout, State) ->
+handle_info(timeout, #state{self = CPid} = State) ->
     %gen_server:handle_cast(Self, validate_protocol),
     validate_protocol(State),
+    stop(CPid),
     {noreply, State};
 handle_info(_Info, State) ->
     {noreply, State}.
@@ -207,21 +157,59 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
-
 %% CONNACK = Acknowledge CONNECT
 connack(0) -> {ok, <<2:4, 0:1, 0:2, 0:1, 2:8, 0:8, 0:8>>};
 connack(Code) -> {error, <<2:4, 0:1, 0:2, 0:1, 2:8, 0:8, Code:8>>}.
 
+%% ================================
+%% Validate protocol name and version.
+validate_protocol(#state{msg = <<6:16, "MQIsdp", 3:8, _Rest/binary>>} = State) ->
+    get_flags(State);
+
+%% if protocol name or version is invalid, send connack with code = 1.
+validate_protocol(#state{apid = APid}) ->
+    {error, Ack} = connack(1),
+    acceptor:reply(APid, Ack).
+%% ================================
+%% Get connection flags.
+get_flags(#state{msg = <<_:72, Usr:1, Pwd:1, WillR:1, WillQ:2, Will:1, ClnS:1, Rsvd:1, _Rest/binary>>} = State) ->
+    NewState = State#state{flags = {con_flags, Usr, Pwd, WillR, WillQ, Will, ClnS, Rsvd}},
+    get_kat_payload(NewState).
+
+%% ================================
+%% Split KAT and the Payload apart. 
+get_kat_payload(#state{msg = <<_:80, KAT:16, Payload/binary>>} = State) ->
+    NewState = State#state{kat = KAT, payload = Payload},
+    split_payload(NewState).
+
+%% ================================
+%% Split payload into the given fields.
+split_payload(#state{payload = Payload} = State) ->
+    PL = splt_pld(Payload), %splt_pld is defined below.
+    NewState = State#state{payload = lists:reverse(PL)},
+    validate_client(NewState).
+
 %% Split payload into the list of {FieldLength, Field}
 %% Note: caller should reverse the list returned from this function.
-split_pload(<<>>) ->
+splt_pld(<<>>) ->
     [];
-split_pload(<<L:16, Rest/binary>>)
+splt_pld(<<L:16, Rest/binary>>)
     when (size(Rest) >= L) ->
     {Extract, RestBin} = split_binary(Rest, L),
-    split_pload(RestBin) ++ [{L, Extract}];
-split_pload(_) ->
+    splt_pld(RestBin) ++ [{L, Extract}];
+splt_pld(_) ->
     {error, length_mismatch}.
+
+%% ================================
+%% Validate client ID (it is a dummy implementation right now).
+validate_client(#state{apid = APid, payload = [{L, ID} | _]} = State) ->
+    case vldt_client({L, ID}) of %A dummy vldt_client is defined below.
+	{ok, _, _} ->
+	    get_wills(State);
+	{error, _} ->
+	    {error, Ack} = connack(2),
+	    acceptor:reply(APid, Ack)
+    end.
 
 %% Validate client identifier
 vldt_client({L, Val})
@@ -230,3 +218,65 @@ vldt_client({L, Val})
     {ok, valid_client, binary_to_list(Val)};
 vldt_client(_) ->
     {error, invalid_client}.
+
+%% ================================
+%% When Will flag is equal to 1, Collect will topic and will message into the state record.
+get_wills(#state{flags = {con_flags, _Usr, _Pwd, _WillR, _WillQ, 1, _ClnS, _Rsvd}, payload = Payload} = State) ->
+    Topic = lists:nth(2, Payload),
+    Msg = lists:nth(3, Payload),
+    NewState = State#state{wills = {Topic, Msg}}, 
+    get_user(NewState);
+
+%% When Will flag is NOT equal to 1, call get user.
+get_wills(State) ->
+    get_user(State).
+
+%% ================================
+%% When User flag = 1 and Will flag = 1, get the user.
+get_user(#state{flags  = {con_flags, 1, _Pwd, _WillR, _WillQ, 1, _ClnS, _Rsvd}, payload = Payload} = State) 
+  when(erlang:length(Payload) >= 4) ->
+    User = lists:nth(4, Payload),
+    NewState = State#state{user = User},
+    get_pswd(NewState);
+
+%% When User flag = 1 and Will flag = 0, get the user.
+get_user(#state{flags  = {con_flags, 1, _Pwd, _WillR, _WillQ, 0, _ClnS, _Rsvd}, payload = Payload} = State) 
+  when(erlang:length(Payload) >= 2) ->
+    User = lists:nth(2, Payload),
+    NewState = State#state{user = User},
+    get_pswd(NewState);
+
+%% When User flag = 0, call authentication -
+%% Rational to call authentication - We may allow unregistered users as the guest users.
+get_user(State) ->
+    authenticate(State).
+
+%% ================================
+%% When User flag = 1, Password flag = 1  and Will flag = 1, get the password.
+get_pswd(#state{flags  = {con_flags, 1, 1, _WillR, _WillQ, 1, _ClnS, _Rsvd}, payload = Payload} = State) 
+  when(erlang:length(Payload) == 5) ->
+    Pswd = lists:nth(5, Payload),
+    NewState = State#state{pswd = Pswd},
+    authenticate(NewState);
+
+%% When User flag = 1, Password flag = 1  and Will flag = 0, get the password.
+get_pswd(#state{flags  = {con_flags, 1, 1, _WillR, _WillQ, 0, _ClnS, _Rsvd}, payload = Payload} = State) 
+  when(erlang:length(Payload) == 3) ->
+    Pswd = lists:nth(3, Payload),
+    NewState = State#state{pswd = Pswd},
+    authenticate(NewState);
+
+%% When User flag = 1, Password flag = 0, authenticate user.
+get_pswd(#state{flags  = {con_flags, 1, 0, _WillR, _WillQ, _Will, _ClnS, _Rsvd}} = State) ->
+    authenticate(State).
+
+%% ================================
+%% dummy implementation for user authentication.
+authenticate(#state{apid = APid, user = _User, pswd = _Psw}) ->
+    authorize(APid).
+
+%% ================================
+%% dummy implementation for user authorization.
+authorize(APid) ->
+	{ok, Ack} = connack(0),
+    acceptor:reply(APid, Ack).

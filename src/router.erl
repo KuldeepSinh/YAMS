@@ -26,7 +26,8 @@
 
 %% API
 -export([start_link/2,
-	 create/2]).
+	 create/2,
+	 stop/1]).
 
 %% gen_server callbacks
 -export([init/1, 
@@ -39,7 +40,7 @@
 -define(SERVER, ?MODULE). 
 -define(MAX_LENGTH, 268435455).
 
--record(state, {apid, msg}).
+-record(state, {apid, msg, self}).
 
 %%%===================================================================
 %%% API
@@ -57,6 +58,9 @@ start_link(APid, Msg) ->
 
 create(APid, Msg) ->
     router_sup:start_child(APid, Msg).
+
+stop(RPid) ->
+    gen_server:call(RPid, stop).
 %%%===================================================================
 %%% gen_server callbacks
 %%%===================================================================
@@ -73,7 +77,7 @@ create(APid, Msg) ->
 %% @end
 %%--------------------------------------------------------------------
 init([APid, Msg]) ->
-    {ok, #state{apid = APid, msg = Msg}, 0}.
+    {ok, #state{apid = APid, msg = Msg, self = self()}, 0}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -103,6 +107,8 @@ handle_call(_Request, _From, State) ->
 %%                                  {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
+handle_cast(stop, State ) ->
+    {stop, normal, State};
 handle_cast(_Msg, State) ->
     {noreply, State}.
 
@@ -116,8 +122,9 @@ handle_cast(_Msg, State) ->
 %%                                   {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
-handle_info(timeout, #state{apid = APid, msg = Msg} = State) ->
+handle_info(timeout, #state{apid = APid, msg = Msg, self = RPid} = State) ->
     {ok, _Type} = route(APid, Msg),
+    stop(RPid),
     {noreply, State};
 handle_info(_Info, State) ->
     {noreply, State}.
