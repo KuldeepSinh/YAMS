@@ -16,11 +16,11 @@
 %%% @author  KuldeepSinh Chauhan
 %%% @copyright (C) 2013, 
 %%% @doc
-%%%     This module will route messages to message handlers in accordance with their type.
+%%%
 %%% @end
-%%% Created : 15 Aug 2013 by KuldeepSinh Chauhan
+%%% Created : 17 Aug 2013 by  KuldeepSinh Chauhan
 %%%-------------------------------------------------------------------
--module(router).
+-module(connect).
 
 -behaviour(gen_server).
 
@@ -37,9 +37,8 @@
 	 code_change/3]).
 
 -define(SERVER, ?MODULE). 
--define(MAX_LENGTH, 268435455).
 
--record(state, {apid, msg}).
+-record(state, {apid, msg, self, flags, kat, payload, wills, user, pswd}).
 
 %%%===================================================================
 %%% API
@@ -56,7 +55,8 @@ start_link(APid, Msg) ->
     gen_server:start_link(?MODULE, [APid, Msg], []).
 
 create(APid, Msg) ->
-    router_sup:start_child(APid, Msg).
+    connect_sup:start_child(APid, Msg).
+
 %%%===================================================================
 %%% gen_server callbacks
 %%%===================================================================
@@ -73,7 +73,7 @@ create(APid, Msg) ->
 %% @end
 %%--------------------------------------------------------------------
 init([APid, Msg]) ->
-    {ok, #state{apid = APid, msg = Msg}, 0}.
+    {ok, #state{apid = APid, msg = Msg, self = self()}, 0}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -103,8 +103,64 @@ handle_call(_Request, _From, State) ->
 %%                                  {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
-handle_cast(_Msg, State) ->
-    {noreply, State}.
+handle_cast(_Message, State) ->
+   {noreply, State}.
+
+
+
+validate_protocol(#state{msg = <<6:16, "MQIsdp", 3:8, _Rest/binary>>} = State) ->
+    get_flags(State);
+validate_protocol(#state{apid = APid}) ->
+	{ok, Ack} = connack(1),
+    acceptor:reply(APid, Ack).
+get_flags(#state{msg = <<_:72, Usr:1, Pwd:1, WillR:1, WillQ:2, Will:1, ClnS:1, Rsvd:1, _Rest/binary>>} = State) ->
+    NewState = State#state{flags = {con_flags, Usr, Pwd, WillR, WillQ, Will, ClnS, Rsvd}},
+    get_kat_payload(NewState).
+get_kat_payload(#state{msg = <<_:80, KAT:16, Payload/binary>>} = State) ->
+    NewState = State#state{kat = KAT, payload = Payload},
+    split_payload(NewState).
+split_payload(#state{payload = Payload} = State) ->
+    PL = split_pload(Payload),
+    NewState = State#state{payload = lists:reverse(PL)},
+    validate_client(NewState).
+validate_client(#state{apid = APid, payload = [{L, ID} | _]} = State) ->
+    case vldt_client({L, ID}) of
+	{ok, _, _} ->
+	    get_wills(State);
+	{error, _} ->
+		{ok, Ack} = connack(2),
+	    acceptor:reply(APid, Ack)
+    end.
+get_wills(#state{flags = {con_flags, _Usr, _Pwd, _WillR, _WillQ, 1, _ClnS, _Rsvd}, payload = Payload} = State) ->
+    Topic = lists:nth(2, Payload),
+    Msg = lists:nth(3, Payload),
+    NewState = State#state{wills = {Topic, Msg}}, 
+    get_user(NewState).
+get_user(#state{flags  = {con_flags, 1, _Pwd, _WillR, _WillQ, 1, _ClnS, _Rsvd}, payload = Payload} = State) 
+  when(erlang:length(Payload) >= 4) ->
+    User = lists:nth(4, Payload),
+    NewState = State#state{user = User},
+    get_pswd(NewState);
+get_user(#state{flags  = {con_flags, 1, _Pwd, _WillR, _WillQ, 0, _ClnS, _Rsvd}, payload = Payload} = State) 
+  when(erlang:length(Payload) >= 2) ->
+    User = lists:nth(2, Payload),
+    NewState = State#state{user = User},
+    get_pswd(NewState).
+get_pswd(#state{flags  = {con_flags, 1, 1, _WillR, _WillQ, 1, _ClnS, _Rsvd}, payload = Payload} = State) 
+  when(erlang:length(Payload) == 5) ->
+    Pswd = lists:nth(5, Payload),
+    NewState = State#state{pswd = Pswd},
+    authenticate(NewState);
+get_pswd(#state{flags  = {con_flags, 1, 1, _WillR, _WillQ, 0, _ClnS, _Rsvd}, payload = Payload} = State) 
+  when(erlang:length(Payload) == 3) ->
+    Pswd = lists:nth(3, Payload),
+    NewState = State#state{pswd = Pswd},
+    authenticate(NewState).
+authenticate(#state{apid = APid, user = _User, pswd = _Psw}) ->
+    authorize(APid).
+authorize(APid) ->
+	{ok, Ack} = connack(0),
+    acceptor:reply(APid, Ack).
 
 %%--------------------------------------------------------------------
 %% @private
@@ -116,8 +172,9 @@ handle_cast(_Msg, State) ->
 %%                                   {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
-handle_info(timeout, #state{apid = APid, msg = Msg} = State) ->
-    {ok, _Type} = route(APid, Msg),
+handle_info(timeout, State) ->
+    %gen_server:handle_cast(Self, validate_protocol),
+    validate_protocol(State),
     {noreply, State};
 handle_info(_Info, State) ->
     {noreply, State}.
@@ -150,71 +207,26 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
-%% Identify message type.
-route(APid, <<1:4, 0:1, 0:2, 0:1, Rest/binary>>) -> 
-    {ok, RestMsg} = get_rest_bin(Rest), 
-    connect:create(APid, RestMsg),
-    {ok, connect};
-route(APid, <<2:4, 0:1, 0:2, 0:1, Rest/binary>>) -> 
-    {ok, RestMsg} = get_rest_bin(Rest), 
-    {ok, connack};
-route(APid, <<3:4, Dup:1, QoS:2, Retain:1, Rest/binary>>) -> 
-    {ok, RestMsg} = get_rest_bin(Rest), 
-    {ok, publish};
-route(APid, <<4:4, 0:1, 0:2, 0:1, Rest/binary>>) -> 
-    {ok, RestMsg} = get_rest_bin(Rest),     
-    {ok, puback};
-route(APid, <<5:4, 0:1, 0:2, 0:1, Rest/binary>>) -> 
-    {ok, RestMsg} = get_rest_bin(Rest),  
-    {ok, pubrec};
-route(APid, <<6:4, Dup:1, QoS:2, 0:1, Rest/binary>>) -> 
-    {ok, RestMsg} = get_rest_bin(Rest), 
-    {ok, pubrel};
-route(APid, <<7:4, 0:1, 0:2, 0:1, Rest/binary>>) -> 
-    {ok, RestMsg} = get_rest_bin(Rest), 
-    {ok, pubcomp};
-route(APid, <<8:4, Dup:1, QoS:2, 0:1, Rest/binary>>) -> 
-    {ok, RestMsg} = get_rest_bin(Rest), 
-    {ok, subscribe};
-route(APid, <<9:4, 0:1, 0:2, 0:1, Rest/binary>>) -> 
-    {ok, RestMsg} = get_rest_bin(Rest), 
-    {ok, suback};
-route(APid, <<10:4, Dup:1, QoS:2, 0:1, Rest/binary>>) -> 
-    {ok, RestMsg} = get_rest_bin(Rest), 
-    {ok, unsubscribe};
-route(APid, <<11:4, 0:1, 0:2, 0:1, Rest/binary>>) -> 
-    {ok, RestMsg} = get_rest_bin(Rest), 
-    {ok, unsuback};
-route(APid, <<12:4, 0:1, 0:2, 0:1, Rest/binary>>) -> 
-    {ok, RestMsg} = get_rest_bin(Rest), 
-    {ok, pingreq};
-route(APid, <<13:4, 0:1, 0:2, 0:1, Rest/binary>>) -> 
-    {ok, RestMsg} = get_rest_bin(Rest), 
-    {ok, pingresp};
-route(APid, <<14:4, 0:1, 0:2, 0:1, Rest/binary>>) -> 
-    {ok, RestMsg} = get_rest_bin(Rest), 
-    {ok, disconnect}.
 
-%% Decode remaining length (RestBin does not contain FirstByte)
-get_rest_bin(Rest) ->
-    get_rest_bin(Rest, 0, 1).
-get_rest_bin(_, RLength, _)
-  when (RLength > ?MAX_LENGTH) ->
-    {error, remaining_length_exceeds};
-%% Calculate the remaining length value:
-%% Recurse if the value of the first bit is 1.
-get_rest_bin(<<1:1, Len:7, Rest/binary>>, RLength, Multiplier) ->
-    get_rest_bin(Rest, RLength + Len * Multiplier, Multiplier * 128);
-%% Calculate Value of the remaining length :
-%% Return if the value of the first bit is 0.
-get_rest_bin(<<0:1, Len:7, Rest/binary>>, RLength, Multiplier)
-    when ((RLength + Len * Multiplier) =:= size(Rest)) ->
-    {
-      ok, Rest
-      %% <ToDo : Remaining length helpful for debugging. I should log it's value (may be with 'lager').>
-      %% {remaining_length, RLength + Len * Multiplier},
-      %% {remaining_binary, Rest}
-    };
-%% Rest of the message is having invalid lenght.
-get_rest_bin(_, _, _) ->
-    {error, invalid_remaining_length}.
+%% CONNACK = Acknowledge CONNECT
+connack(0) -> {ok, <<2:4, 0:1, 0:2, 0:1, 2:8, 0:8, 0:8>>};
+connack(Code) -> {error, <<2:4, 0:1, 0:2, 0:1, 2:8, 0:8, Code:8>>}.
+
+%% Split payload into the list of {FieldLength, Field}
+%% Note: caller should reverse the list returned from this function.
+split_pload(<<>>) ->
+    [];
+split_pload(<<L:16, Rest/binary>>)
+    when (size(Rest) >= L) ->
+    {Extract, RestBin} = split_binary(Rest, L),
+    split_pload(RestBin) ++ [{L, Extract}];
+split_pload(_) ->
+    {error, length_mismatch}.
+
+%% Validate client identifier
+vldt_client({L, Val})
+  when((L >= 1) and (L =< 23)) ->
+    %%<ToDo> : Lookup in the client-registry if the client ID is unique/client is registered with the system.
+    {ok, valid_client, binary_to_list(Val)};
+vldt_client(_) ->
+    {error, invalid_client}.

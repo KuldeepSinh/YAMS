@@ -39,7 +39,6 @@ start_link() ->
 %% ===================================================================
 %% Supervisor callbacks
 %% ===================================================================
-
 init([]) ->
     RestartStrategy = one_for_one,
     MaxRestarts = 0,
@@ -54,11 +53,13 @@ init([]) ->
     RouterSup = {router_sup, {router_sup, start_link, []}, Restart, Shutdown, Type, [router_sup]},
     %Suprevisor for message Correspondents
     CorrespondentSup = {correspondent_sup, {correspondent_sup, start_link, []}, Restart, Shutdown, Type, [correspondent_sup]},
+    %Suprevisor for message type = connect
+    ConnectSup = {connect_sup, {connect_sup, start_link, []}, Restart, Shutdown, Type, [connect_sup]},
 
     %%In the following list, the order of given supervisors is very important.
     %%Starting from the lowest level, supervisors will be started upto the highest level, 
     %%ensuring, lower level Supervisor is ready before it is used by the higher level.
-    {ok, {SupFlags, [CorrespondentSup, RouterSup]}}.
+    {ok, {SupFlags, [CorrespondentSup, ConnectSup, RouterSup]}}.
 
 %% ===================================================================
 %% Non-API functions

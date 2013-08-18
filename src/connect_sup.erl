@@ -16,11 +16,11 @@
 %%% @author  KuldeepSinh Chauhan
 %%% @copyright (C) 2013, 
 %%% @doc
-%%%     This module will supervise message senders.
+%%%     This module will supervise connect message handlers.
 %%% @end
 %%% Created : 10 Aug 2013 by  KuldeepSinh Chauhan
 %%%-------------------------------------------------------------------
--module(correspondent_sup).
+-module(connect_sup).
 
 -behaviour(supervisor).
 
@@ -77,8 +77,8 @@ init([]) ->
     Shutdown = 2000,
     Type = worker,
 
-    Correspondent = {correspondent, {correspondent, start_link, []}, Restart, Shutdown, Type, [correspondent]},
-    {ok, {SupFlags, [Correspondent]}}.
+    Connect = {connect, {connect, start_link, []}, Restart, Shutdown, Type, [connect]},
+    {ok, {SupFlags, [Connect]}}.
 
 %%%===================================================================
 %%% Internal functions
