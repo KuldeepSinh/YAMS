@@ -39,7 +39,7 @@
 
 -define(SERVER, ?MODULE). 
 
--record(state, {lsock, asock, apid}).
+-record(state, {lsock, asock, apid, status}).
 
 %%%===================================================================
 %%% API
@@ -77,7 +77,7 @@ reply(APid, Msg) ->
 %% @end
 %%--------------------------------------------------------------------
 init([LSock]) ->   
-    {ok, #state{lsock=LSock, apid = self()}, 0}.
+    {ok, #state{lsock = LSock, apid = self(), status = disconnected}, 0}.
     
 
 %%--------------------------------------------------------------------
@@ -108,10 +108,13 @@ handle_call(_Request, _From, State) ->
 %%                                  {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
-handle_cast({reply, Msg}, #state{asock = ASock} = State) ->
-    gen_tcp:send(ASock, Msg),
+handle_cast({reply, {ok, Connack}}, #state{asock = ASock} = State) ->
+    NewState = State#state{status = connected},
+    gen_tcp:send(ASock, Connack),
+    {noreply, NewState};
+handle_cast({reply, {error, Connack}}, #state{asock = ASock} = State) ->
+    gen_tcp:send(ASock, Connack),
     {noreply, State};
-
 handle_cast(_Msg, State) ->
     {noreply, State}.
 
@@ -133,8 +136,8 @@ handle_info(timeout, #state{lsock = LSock} = State) ->
     %% create a new acceptor
     create(LSock),	
     {noreply,State#state{asock = ASock}};
-handle_info({tcp, ASock, Msg}, #state{apid = APid} = State) ->
-    router:create(APid, Msg),
+handle_info({tcp, ASock, Msg}, #state{apid = APid, status = Status} = State) ->
+    router:create(APid, Status, Msg),
     %% make ASock ready to accept next messages
     inet:setopts(ASock, [{active, once}]),
     {noreply, State};

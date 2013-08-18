@@ -168,8 +168,7 @@ validate_protocol(#state{msg = <<6:16, "MQIsdp", 3:8, _Rest/binary>>} = State) -
 
 %% if protocol name or version is invalid, send connack with code = 1.
 validate_protocol(#state{apid = APid}) ->
-    {error, Ack} = connack(1),
-    acceptor:reply(APid, Ack).
+     acceptor:reply(APid, connack(1)).
 %% ================================
 %% Get connection flags.
 get_flags(#state{msg = <<_:72, Usr:1, Pwd:1, WillR:1, WillQ:2, Will:1, ClnS:1, Rsvd:1, _Rest/binary>>} = State) ->
@@ -206,9 +205,8 @@ validate_client(#state{apid = APid, payload = [{L, ID} | _]} = State) ->
     case vldt_client({L, ID}) of %A dummy vldt_client is defined below.
 	{ok, _, _} ->
 	    get_wills(State);
-	{error, _} ->
-	    {error, Ack} = connack(2),
-	    acceptor:reply(APid, Ack)
+	{error, _} ->	    
+	    acceptor:reply(APid, connack(2))
     end.
 
 %% Validate client identifier
@@ -278,5 +276,4 @@ authenticate(#state{apid = APid, user = _User, pswd = _Psw}) ->
 %% ================================
 %% dummy implementation for user authorization.
 authorize(APid) ->
-	{ok, Ack} = connack(0),
-    acceptor:reply(APid, Ack).
+    acceptor:reply(APid, connack(0)).

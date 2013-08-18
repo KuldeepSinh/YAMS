@@ -25,8 +25,8 @@
 -behaviour(gen_server).
 
 %% API
--export([start_link/2,
-	 create/2,
+-export([start_link/3,
+	 create/3,
 	 stop/1]).
 
 %% gen_server callbacks
@@ -40,7 +40,7 @@
 -define(SERVER, ?MODULE). 
 -define(MAX_LENGTH, 268435455).
 
--record(state, {apid, msg, self}).
+-record(state, {apid, msg, self, status}).
 
 %%%===================================================================
 %%% API
@@ -53,11 +53,11 @@
 %% @spec start_link() -> {ok, Pid} | ignore | {error, Error}
 %% @end
 %%--------------------------------------------------------------------
-start_link(APid, Msg) ->
-    gen_server:start_link(?MODULE, [APid, Msg], []).
+start_link(APid, Status, Msg) ->
+    gen_server:start_link(?MODULE, [APid, Status, Msg], []).
 
-create(APid, Msg) ->
-    router_sup:start_child(APid, Msg).
+create(APid, Status, Msg) ->
+    router_sup:start_child(APid, Status, Msg).
 
 stop(RPid) ->
     gen_server:call(RPid, stop).
@@ -76,8 +76,8 @@ stop(RPid) ->
 %%                     {stop, Reason}
 %% @end
 %%--------------------------------------------------------------------
-init([APid, Msg]) ->
-    {ok, #state{apid = APid, msg = Msg, self = self()}, 0}.
+init([APid, Status, Msg]) ->
+    {ok, #state{apid = APid, msg = Msg, self = self(), status = Status}, 0}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -122,8 +122,8 @@ handle_cast(_Msg, State) ->
 %%                                   {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
-handle_info(timeout, #state{apid = APid, msg = Msg, self = RPid} = State) ->
-    {ok, _Type} = route(APid, Msg),
+handle_info(timeout, #state{apid = APid, msg = Msg, self = RPid, status = Status} = State) ->
+    {ok, _Type} = route(APid, Status, Msg),
     stop(RPid),
     {noreply, State};
 handle_info(_Info, State) ->
@@ -158,50 +158,51 @@ code_change(_OldVsn, State, _Extra) ->
 %%% Internal functions
 %%%===================================================================
 %% Identify message type.
-route(APid, <<1:4, 0:1, 0:2, 0:1, Rest/binary>>) -> 
+route(APid, _Status, <<1:4, 0:1, 0:2, 0:1, Rest/binary>>) -> 
     {ok, RestMsg} = get_rest_bin(Rest), 
     connect:create(APid, RestMsg),
     {ok, connect};
-route(APid, <<2:4, 0:1, 0:2, 0:1, Rest/binary>>) -> 
+route(APid, connected, <<2:4, 0:1, 0:2, 0:1, Rest/binary>>) -> 
     {ok, RestMsg} = get_rest_bin(Rest), 
     {ok, connack};
-route(APid, <<3:4, Dup:1, QoS:2, Retain:1, Rest/binary>>) -> 
+route(APid, connected, <<3:4, Dup:1, QoS:2, Retain:1, Rest/binary>>) -> 
     {ok, RestMsg} = get_rest_bin(Rest), 
     {ok, publish};
-route(APid, <<4:4, 0:1, 0:2, 0:1, Rest/binary>>) -> 
+route(APid, connected, <<4:4, 0:1, 0:2, 0:1, Rest/binary>>) -> 
     {ok, RestMsg} = get_rest_bin(Rest),     
     {ok, puback};
-route(APid, <<5:4, 0:1, 0:2, 0:1, Rest/binary>>) -> 
+route(APid, connected, <<5:4, 0:1, 0:2, 0:1, Rest/binary>>) -> 
     {ok, RestMsg} = get_rest_bin(Rest),  
     {ok, pubrec};
-route(APid, <<6:4, Dup:1, QoS:2, 0:1, Rest/binary>>) -> 
+route(APid, connected, <<6:4, Dup:1, QoS:2, 0:1, Rest/binary>>) -> 
     {ok, RestMsg} = get_rest_bin(Rest), 
     {ok, pubrel};
-route(APid, <<7:4, 0:1, 0:2, 0:1, Rest/binary>>) -> 
+route(APid, connected, <<7:4, 0:1, 0:2, 0:1, Rest/binary>>) -> 
     {ok, RestMsg} = get_rest_bin(Rest), 
     {ok, pubcomp};
-route(APid, <<8:4, Dup:1, QoS:2, 0:1, Rest/binary>>) -> 
+route(APid, connected, <<8:4, Dup:1, QoS:2, 0:1, Rest/binary>>) -> 
     {ok, RestMsg} = get_rest_bin(Rest), 
     {ok, subscribe};
-route(APid, <<9:4, 0:1, 0:2, 0:1, Rest/binary>>) -> 
+route(APid, connected, <<9:4, 0:1, 0:2, 0:1, Rest/binary>>) -> 
     {ok, RestMsg} = get_rest_bin(Rest), 
     {ok, suback};
-route(APid, <<10:4, Dup:1, QoS:2, 0:1, Rest/binary>>) -> 
+route(APid, connected, <<10:4, Dup:1, QoS:2, 0:1, Rest/binary>>) -> 
     {ok, RestMsg} = get_rest_bin(Rest), 
     {ok, unsubscribe};
-route(APid, <<11:4, 0:1, 0:2, 0:1, Rest/binary>>) -> 
+route(APid, connected, <<11:4, 0:1, 0:2, 0:1, Rest/binary>>) -> 
     {ok, RestMsg} = get_rest_bin(Rest), 
     {ok, unsuback};
-route(APid, <<12:4, 0:1, 0:2, 0:1, Rest/binary>>) -> 
+route(APid, connected, <<12:4, 0:1, 0:2, 0:1, Rest/binary>>) -> 
     {ok, RestMsg} = get_rest_bin(Rest), 
     {ok, pingreq};
-route(APid, <<13:4, 0:1, 0:2, 0:1, Rest/binary>>) -> 
+route(APid, connected, <<13:4, 0:1, 0:2, 0:1, Rest/binary>>) -> 
     {ok, RestMsg} = get_rest_bin(Rest), 
     {ok, pingresp};
-route(APid, <<14:4, 0:1, 0:2, 0:1, Rest/binary>>) -> 
+route(APid, connected, <<14:4, 0:1, 0:2, 0:1, Rest/binary>>) -> 
     {ok, RestMsg} = get_rest_bin(Rest), 
     {ok, disconnect}.
 
+%%================================
 %% Decode remaining length (RestBin does not contain FirstByte)
 get_rest_bin(Rest) ->
     get_rest_bin(Rest, 0, 1).
