@@ -122,8 +122,7 @@ handle_cast(_Message, State) ->
 %% @end
 %%--------------------------------------------------------------------
 handle_info(timeout, #state{self = CPid} = State) ->
-    %gen_server:handle_cast(Self, validate_protocol),
-    validate_protocol(State),
+    process_message(State),   
     stop(CPid),
     {noreply, State};
 handle_info(_Info, State) ->
@@ -162,6 +161,11 @@ connack(0) -> {ok, <<2:4, 0:1, 0:2, 0:1, 2:8, 0:8, 0:8>>};
 connack(Code) -> {error, <<2:4, 0:1, 0:2, 0:1, 2:8, 0:8, Code:8>>}.
 
 %% ================================
+%% Start processing the message.
+process_message(State) ->    
+    validate_protocol(State).
+
+%% ================================
 %% Validate protocol name and version.
 validate_protocol(#state{msg = <<6:16, "MQIsdp", 3:8, _Rest/binary>>} = State) ->
     get_flags(State);
@@ -169,6 +173,7 @@ validate_protocol(#state{msg = <<6:16, "MQIsdp", 3:8, _Rest/binary>>} = State) -
 %% if protocol name or version is invalid, send connack with code = 1.
 validate_protocol(#state{apid = APid}) ->
      acceptor:reply(APid, connack(1)).
+
 %% ================================
 %% Get connection flags.
 get_flags(#state{msg = <<_:72, Usr:1, Pwd:1, WillR:1, WillQ:2, Will:1, ClnS:1, Rsvd:1, _Rest/binary>>} = State) ->
@@ -270,10 +275,12 @@ get_pswd(#state{flags  = {con_flags, 1, 0, _WillR, _WillQ, _Will, _ClnS, _Rsvd}}
 
 %% ================================
 %% dummy implementation for user authentication.
-authenticate(#state{apid = APid, user = _User, pswd = _Psw}) ->
-    authorize(APid).
+authenticate(#state{apid = APid, user = _User, pswd = _Psw, payload = [{_L, ClientID} | _]}) ->
+    authorize(APid, ClientID).
 
 %% ================================
 %% dummy implementation for user authorization.
-authorize(APid) ->
-    acceptor:reply(APid, connack(0)).
+authorize(APid, ClientID) ->
+    %% Send client ID, so that acceptor will be able to 
+    %% enter an entry in the directory for client-apid mapping.
+    acceptor:reply(APid, {ClientID, connack(0)}).
