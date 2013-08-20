@@ -275,12 +275,12 @@ get_pswd(#state{flags  = {con_flags, 1, 0, _WillR, _WillQ, _Will, _ClnS, _Rsvd}}
 
 %% ================================
 %% dummy implementation for user authentication.
-authenticate(#state{apid = APid, user = _User, pswd = _Psw, payload = [{_L, ClientID} | _]}) ->
-    authorize(APid, ClientID).
+authenticate(#state{apid = APid, user = _User, pswd = _Psw, payload = [{_L, ClientID} | _], kat = KAT}) ->
+    authorize(APid, ClientID, KAT).
 
 %% ================================
 %% dummy implementation for user authorization.
-authorize(APid, ClientID) ->
+authorize(APid, ClientID, KAT) ->
     %% Send client ID, so that acceptor will be able to 
     %% enter an entry in the directory for client-apid mapping.
-    acceptor:reply(APid, {ClientID, connack(0)}).
+    acceptor:reply(APid, {ClientID, KAT, connack(0)}).

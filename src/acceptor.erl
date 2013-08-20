@@ -39,7 +39,7 @@
 
 -define(SERVER, ?MODULE). 
 
--record(state, {lsock, asock, apid, status, clientID}).
+-record(state, {lsock, asock, apid, status, clientID, kat}).
 
 %%%===================================================================
 %%% API
@@ -108,8 +108,8 @@ handle_call(_Request, _From, State) ->
 %%                                  {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
-handle_cast({reply, {ClientID, {ok, Connack}}}, #state{asock = ASock} = State) ->
-    NewState = State#state{status = connected, clientID = ClientID},
+handle_cast({reply, {ClientID, KAT, {ok, Connack}}}, #state{asock = ASock} = State) ->
+    NewState = State#state{status = connected, clientID = ClientID, kat = KAT},
     gen_tcp:send(ASock, Connack),
     {noreply, NewState};
 handle_cast({reply, {error, Connack}}, #state{asock = ASock} = State) ->
