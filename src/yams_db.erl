@@ -22,13 +22,52 @@
 %%%-------------------------------------------------------------------
 
 -module(yams_db).
--export([init_tables/0]).
+-export([init/0,
+	 insert_acceptor/2,
+	 lookup_acceptor/1,
+	 delete_acceptor/1]).
 
--record(client, {cid, apid}).
+-record(acceptor, {apid, cid}).
 -record(subscription, {cid, topic}).
 
-init_tables() ->
+init() ->
+    %% Start mnesia
+    mnesia:start(),
     %% Client table will store mapping between ID of the connected client and its associated Acceptor Pid.
-    mnesia:create_table(client, [{attributes, record_info(fields, client)}]),
+    mnesia:create_table(acceptor, [{index, [cid]}, {attributes, record_info(fields, acceptor)}]),
     %% Subscription table will store Client ID and its subscribed topics.
     mnesia:create_table(subscription, [{type, bag}, {attributes, record_info(fields, subscription)}]).
+
+%% "Acceptor" is a memory based table, which stores 
+%% pid of the acceoptor and the client ID it is connected with.
+insert_acceptor(APid, Cid) ->
+    mnesia:dirty_write(#acceptor{apid = APid, cid = Cid}).
+
+%% This fucntion will search the "Acceptor" table based on the given Client ID.
+lookup_acceptor(Cid) ->
+    case mnesia:dirty_read(acceptor, Cid) of
+	[{acceptor, APid, Cid}] ->
+	    case is_pid_alive(APid) of	    
+		true ->
+		    {ok, APid};
+		false ->
+		    {error, not_found}
+	    end;
+	[] ->
+	    {error, not_found}
+    end.
+
+%% Following function determines, if the given Pid is still alive or not.
+is_pid_alive(Pid) when node(Pid) =:= node() ->
+    is_process_alive(Pid);
+is_pid_alive(Pid) ->
+    lists:member(node(Pid), nodes()) andalso (rpc:call(node(Pid), erlang, is_process_alive, [Pid]) =:= true).
+
+%% Delete Acceptor porcess based on passed apid.
+delete_acceptor(APid) ->
+    case mnesia:dirty_index_read(acceptor, APid, #acceptor.apid) of
+	[#acceptor{} = Record] ->
+	    mnesia:dirty_delete_object(Record);
+	_ ->
+	    ok
+    end.
