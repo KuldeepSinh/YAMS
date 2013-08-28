@@ -108,7 +108,10 @@ handle_call(_Request, _From, State) ->
 %%                                  {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
-handle_cast({reply, {ClientID, KAT, {ok, Connack}}}, #state{asock = ASock} = State) ->
+handle_cast({reply, {ClientID, KAT, {ok, Connack}}}, #state{asock = ASock, apid = APid} = State) ->
+    %% Add a record into the cid_to_apid table.
+    client_to_apid:insert(ClientID, APid),
+    %% Create a new state
     NewState = State#state{status = connected, clientID = ClientID, kat = KAT},
     gen_tcp:send(ASock, Connack),
     {noreply, NewState};
