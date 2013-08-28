@@ -24,7 +24,14 @@
 %% ===================================================================
 
 start(_StartType, _StartArgs) ->
-    yams_sup:start_link().
-
+    %% Initialize database.
+    yams_db:init(),
+    %% Start root supervisor.
+    case yams_sup:start_link() of
+	{ok, Pid} ->
+	    {ok, Pid};
+	Other ->
+	    {error, Other}
+    end.
 stop(_State) ->
     ok.

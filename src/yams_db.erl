@@ -18,19 +18,13 @@
 %%% @doc
 %%%     This module opens the acceptor-socket for incomming client messages.
 %%% @end
-%%% Created :  22 Aug 2013 by  KuldeepSinh Chauhan
+%%% Created :  28 Aug 2013 by  KuldeepSinh Chauhan
 %%%-------------------------------------------------------------------
-
--module(client_to_apid).
--export([init/0,
-	 insert/2,
-	 lookup/1,
-	 delete/1]).
-
+-module(yams_db).
+-export([init/0]).
 -include("../include/yams_db.hrl").
 
-
-%% <ToDo> This function should be removed, as I am planning to include CRUD operations for cid_to_pid mapper only.
+%% This function is used to initialize, mnesia based database for YAMS.
 init() ->
     %% Start mnesia
     mnesia:start(),
@@ -41,36 +35,4 @@ init() ->
     %% Contents of this table will be stored on the disk too, along with in the RAM.
     mnesia:create_table(subscription, [{disc_copies, [node()]}, {type, bag}, {attributes, record_info(fields, subscription)}]).
 
-%% "cid_to_apid" is a memory based table, which stores 
-%% the mapping between Client ID and associated Acceptor Pid.
-insert(Cid, APid) ->
-    mnesia:dirty_write(#cid_to_apid{cid = Cid, apid = APid}).
 
-%% This fucntion will search the "cid_to_apid" table based on the given Client ID.
-lookup(Cid) ->
-    case mnesia:dirty_read(cid_to_apid, Cid) of
-	[{cid_to_apid, Cid, APid}] ->
-	    case is_pid_alive(APid) of	    
-		true ->
-		    {ok, APid};
-		false ->
-		    {error, not_found}
-	    end;
-	[] ->
-	    {error, not_found}
-    end.
-
-%% Following function determines, if the given APid is still alive or not.
-is_pid_alive(APid) when node(APid) =:= node() ->
-    is_process_alive(APid);
-is_pid_alive(APid) ->
-    lists:member(node(APid), nodes()) andalso (rpc:call(node(APid), erlang, is_process_alive, [APid]) =:= true).
-
-%% Delete cid_to_apid mapping based on passed Cid.
-delete(Cid) ->
-    case mnesia:dirty_index_read(cid_to_apid, Cid, #cid_to_apid.cid) of
-	[#cid_to_apid{} = Record] ->
-	    mnesia:dirty_delete_object(Record);
-	_ ->
-	    ok
-    end.
