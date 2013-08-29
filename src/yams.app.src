@@ -19,8 +19,7 @@
   {registered, []},
   {applications, [
                   kernel,
-                  stdlib,
-		  mnesia
+                  stdlib
                  ]},
   {mod, { yams_app, []}},
   {env, []}

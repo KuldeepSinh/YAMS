@@ -42,7 +42,7 @@ only_once() ->
     %% Contents of this table will be stored on the disk too, along with in the RAM.
     mnesia:create_table(subscription, [{disc_copies, [node()]}, {type, bag}, {attributes, record_info(fields, subscription)}]).
 
-%% Assumption: This function is executed after above function.
+%% Assumption: Above function was already executed in past to create schema and tables.
 %% This function will be executed each time we start YAMS, application.
 init() ->
     %% Start mnesia
