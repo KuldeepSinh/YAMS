@@ -53,13 +53,15 @@ init([]) ->
     RouterSup = {router_sup, {router_sup, start_link, []}, Restart, Shutdown, Type, [router_sup]},
     %Suprevisor for message Correspondents
     CorrespondentSup = {correspondent_sup, {correspondent_sup, start_link, []}, Restart, Shutdown, Type, [correspondent_sup]},
+    %Suprevisor for message type = subscribe
+    SubscribeSup = {subscribe_sup, {subscribe_sup, start_link, []}, Restart, Shutdown, Type, [subscribe_sup]},
     %Suprevisor for message type = connect
     ConnectSup = {connect_sup, {connect_sup, start_link, []}, Restart, Shutdown, Type, [connect_sup]},
 
     %%In the following list, the order of given supervisors is very important.
     %%Starting from the lowest level, supervisors will be started upto the highest level, 
     %%ensuring, lower level Supervisor is ready before it is used by the higher level.
-    {ok, {SupFlags, [CorrespondentSup, ConnectSup, RouterSup]}}.
+    {ok, {SupFlags, [CorrespondentSup, SubscribeSup, ConnectSup, RouterSup]}}.
 
 %% ===================================================================
 %% Non-API functions
