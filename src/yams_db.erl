@@ -48,4 +48,4 @@ init() ->
     %% Start mnesia
     mnesia:start(),
     %% Wait for tables.
-    mnesia:wait_for_tables([cid_to_apid, subscription]).
+    mnesia:wait_for_tables([cid_to_apid, subscription], 20000).
