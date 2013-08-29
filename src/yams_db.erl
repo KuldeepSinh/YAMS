@@ -21,13 +21,20 @@
 %%% Created :  28 Aug 2013 by  KuldeepSinh Chauhan
 %%%-------------------------------------------------------------------
 -module(yams_db).
--export([init/0]).
+-export([only_once/0, 
+	 init/0]).
 -include("../include/yams_db.hrl").
 
-%% This function is used to initialize, mnesia based database for YAMS.
-init() ->
+%% This function should be executed only-once to create DB schema and tables.
+%% This function will be executed from the erlang shell.
+only_once() ->
+    %% Create schema
+    mnesia:create_schema([node()]),
     %% Start mnesia
     mnesia:start(),
+
+    %% Create tables.
+    
     %% This table will store mapping between ID of the connected client and its associated Acceptor Pid.
     %% This will be a RAM based table.
     mnesia:create_table(cid_to_apid, [{attributes, record_info(fields, cid_to_apid)}]),
@@ -35,4 +42,10 @@ init() ->
     %% Contents of this table will be stored on the disk too, along with in the RAM.
     mnesia:create_table(subscription, [{disc_copies, [node()]}, {type, bag}, {attributes, record_info(fields, subscription)}]).
 
-
+%% Assumption: This function is executed after above function.
+%% This function will be executed each time we start YAMS, application.
+init() ->
+    %% Start mnesia
+    mnesia:start(),
+    %% Wait for tables.
+    mnesia:wait_for_tables([cid_to_apid, subscription]).
