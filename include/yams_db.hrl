@@ -8,4 +8,4 @@
 
 %% subcription table will map Client ID with the topics 
 %% client is subscribing to.
--record(subscription, {cid, topic}).
+-record(subscription, {cid, topic, qos}).

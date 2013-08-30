@@ -180,7 +180,10 @@ route(APid, connected, <<6:4, Dup:1, QoS:2, 0:1, Rest/binary>>) ->
 route(APid, connected, <<7:4, 0:1, 0:2, 0:1, Rest/binary>>) -> 
     {ok, RestMsg} = get_rest_bin(Rest), 
     {ok, pubcomp};
-route(APid, connected, <<8:4, Dup:1, QoS:2, 0:1, Rest/binary>>) -> 
+%% Last 3 bits of the First-byte are now called reserved bits in the next version.
+%% The required value for last 3 bits is 2 (which is same as required for the current version 4.0).
+%% That's why the value of the QoS field (second and third last bits) is set to 1.
+route(APid, connected, <<8:4, Dup:1, 1:2, 0:1, Rest/binary>>) -> 
     {ok, RestMsg} = get_rest_bin(Rest), 
     {ok, subscribe};
 route(APid, connected, <<9:4, 0:1, 0:2, 0:1, Rest/binary>>) -> 

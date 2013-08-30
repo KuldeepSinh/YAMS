@@ -1,3 +1,17 @@
+%% Copyright 2013 KuldeepSinh Chauhan
+%%
+%% Licensed under the Apache License, Version 2.0 (the "License");
+%% you may not use this file except in compliance with the License.
+%% You may obtain a copy of the License at
+%%
+%% http://www.apache.org/licenses/LICENSE-2.0
+%%
+%% Unless required by applicable law or agreed to in writing, software
+%% distributed under the License is distributed on an "AS IS" BASIS,
+%% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+%% See the License for the specific language governing permissions and
+%% limitations under the License.
+
 %%%-------------------------------------------------------------------
 %%% @author  KuldeepSinh Chauhan
 %%% @copyright (C) 2013, 
@@ -11,8 +25,8 @@
 -behaviour(gen_server).
 
 %% API
--export([start_link/2,
-	 create/2, 
+-export([start_link/3,
+	 create/3, 
 	 stop/1]).
 
 %% gen_server callbacks
@@ -21,7 +35,7 @@
 
 -define(SERVER, ?MODULE). 
 
--record(state, {}).
+-record(state, {apid, dup, msg, self, msgID, subscriptions}).
 
 %%%===================================================================
 %%% API
@@ -34,14 +48,14 @@
 %% @spec start_link() -> {ok, Pid} | ignore | {error, Error}
 %% @end
 %%--------------------------------------------------------------------
-start_link(APid, Msg) ->
-    gen_server:start_link(?MODULE, [APid, Msg], []).
+start_link(APid, Dup, Msg) ->
+    gen_server:start_link(?MODULE, [APid, Dup, Msg], []).
 
-create(APid, Msg) ->
-    connect_sup:start_child(APid, Msg).
+create(APid, Dup, Msg) ->
+    subscribe_sup:start_child(APid, Dup, Msg).
 
-stop(CPid) ->
-    gen_server:call(CPid, stop).
+stop(SPid) ->
+    gen_server:call(SPid, stop).
 
 %%%===================================================================
 %%% gen_server callbacks
@@ -58,8 +72,8 @@ stop(CPid) ->
 %%                     {stop, Reason}
 %% @end
 %%--------------------------------------------------------------------
-init([]) ->
-    {ok, #state{}}.
+init([Apid, Dup, Msg]) ->
+    {ok, #state{apid = Apid, dup = Dup, msg = Msg, self = self()}, 0}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -104,6 +118,10 @@ handle_cast(_Msg, State) ->
 %%                                   {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
+handle_info(timeout, #state{self = SPid} = State) ->
+    process_message(State),   
+    stop(SPid),
+    {noreply, State};
 handle_info(_Info, State) ->
     {noreply, State}.
 
@@ -135,3 +153,25 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
+process_message(#state{msg = <<ID:16, Payload/binary>>} = State)  ->
+    NewState = State#state{msgID = ID},
+    split_payload(Payload, NewState).
+
+split_payload(<<>>, #state{subscriptions = Subscriptions} = State) -> 
+    NewState = State#state{subscriptions = lists:reverse(Subscriptions)},
+    validate_qos(NewState);
+split_payload(<<L:16, Rest/binary>>,  #state{subscriptions = Subscriptions} = State)
+  when(size(Rest) >= (L + 1)) ->
+    {Topic, RB} = split_binary(Rest, L),
+    <<QoS:8, RestBin/binary>> = RB,
+    NewState = State#state{subscriptions = [{Topic, QoS}] ++ Subscriptions},
+    split_payload(RestBin, NewState);
+split_payload(_, _) ->
+    {error, length_mismatch}.
+
+validate_qos([]) ->
+    ok;
+validate_qos(#state{subscriptions = [{_T, QoS}| T]}) 
+  when (QoS >=0 andalso QoS =< 3) -> 
+    validate_qos(T).
+    
