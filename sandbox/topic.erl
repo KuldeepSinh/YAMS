@@ -15,6 +15,7 @@
 -module(topic).
 -compile(export_all).
 
+%%==================================
 %% Find the position of the NULL character in the topic, if any.
 null_position(Topic) ->
     string:chr(Topic, $\0).
@@ -24,11 +25,10 @@ contains_null_char(0) ->
 %% If NULL character is available, true will be return.
 contains_null_char(_) ->
     true.
-
+%%==================================
 %% Find length of the topic
 length(Topic) ->
     string:len(Topic).
-
 %% Validate length (zero is invalid)
 validate_length(0) ->
     {error, invalid_length};
@@ -39,35 +39,37 @@ validate_length(N)
 %% Validate length (greater than 65535 is invalid)
 validate_length(_) ->
     {error, invalid_length}.
-
-%% Check if level separator is repeated consecutively.
-check_consecutive_separators(Topic) ->
-    re:run(Topic,"//").
-
-%% If level separator is repeated consecutively, invalid.
-validate_separator({match, _}) ->
-    {error, invalid_level_separator};
-validate_separator(_) ->
+%%==================================
+%% Check if an expression is present 
+%% Intended use: we will check if // and ++ are present in the topic.
+check_presence(Topic, Expression) ->
+    {Match, _} = re:run(Topic, Expression),
+    Match.
+%% If characters are repeated consecutively, topic is invalid.
+%% Should be used with check_presence/2
+validate_for_consecutive_chars(match) ->
+    {error, invalid};
+validate_for_consecutive_chars(_) ->
     {ok, valid}.
-
+%%==================================
 %% Trim leading and trailing white-spaces from the string.
 trim_whitespace(Topic) ->
     %% First remove left side spaces.
-    LS= re:replace(Topic, "^[ \t]*", "", [{return, list}]),
+    LS = re:replace(Topic, "^[ \t]*", "", [{return, list}]),
     %% Then remove right side spaces.
     re:replace(LS, "[ \t]*$", "", [{return, list}]).
-
-%% Check if multi-level wildcard is available.
+%%==================================
+%% Check if multi-level wild-card is available.
 check_multi_level_wildcard(Topic) ->
     re:run(Topic,"#", [global]).
-%% if not avalable, then multi-level wildcard test is pass.
+%% if not available, then multi-level wild-card test is pass.
 validate_multi_level_wildcard(nomatch, _Topic) -> 
     {ok, valid};
 %%if available...
 validate_multi_level_wildcard({match, List}, Topic) -> 
-    %% check total number of occurances of the multi-level wildcard...
+    %% check total number of occurrences of the multi-level wild-card...
     case (erlang:length(List)) of
-	%% if exactly one occurance is there for the multi-level wildcard...
+	%% if exactly one occurrence is there for the multi-level wild-card...
 	1 ->
 	    %% check the length of the topic
 	    case (erlang:length(Topic)) of
@@ -79,16 +81,14 @@ validate_multi_level_wildcard({match, List}, Topic) ->
 		    %% check how it ends....
 		    validate_multi_level_wildcard_on_end(re:run(Topic, "/#$"))			
 	    end;
-	%% if more than one occurance is there of the multi-level wild card, topic is invalid.
+	%% if more than one occurrence is there of the multi-level wild card, topic is invalid.
 	_ ->
 	    {error, invalid}
     end.
-
 %% if the topic ends with "/#", the topic is valid.
 validate_multi_level_wildcard_on_end({match, _}) ->
     {ok, valid};
-%% if the topic does not edn with "/#", the topic is invalid.
+%% if the topic does not end with "/#", the topic is invalid.
 validate_multi_level_wildcard_on_end(_) ->
     {error, invalid}.
-
-    
+%%==================================
