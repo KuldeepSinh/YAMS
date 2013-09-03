@@ -43,11 +43,10 @@ validate_length(_) ->
 %% Check if an expression is present 
 %% Intended use: we will check if // and ++ are present in the topic.
 check_presence(Topic, Expression) ->
-    {Match, _} = re:run(Topic, Expression),
-    Match.
+    re:run(Topic, Expression).    
 %% If characters are repeated consecutively, topic is invalid.
 %% Should be used with check_presence/2
-validate_for_consecutive_chars(match) ->
+validate_for_consecutive_chars({match, _}) ->
     {error, invalid};
 validate_for_consecutive_chars(_) ->
     {ok, valid}.
@@ -92,3 +91,13 @@ validate_multi_level_wildcard_on_end({match, _}) ->
 validate_multi_level_wildcard_on_end(_) ->
     {error, invalid}.
 %%==================================
+%% Check if single level wild-card is available
+check_single_level_wildcard(Topic) ->
+    re:run(Topic,"+").
+%% if not available, then multi-level wild-card test is pass.
+validate_single_level_wildcard(nomatch, _Topic) -> 
+    {ok, valid};
+%%if available...
+validate_single_level_wildcard({match, _}, Topic) -> 
+    %% <<todo>> develop logic.
+    ok.
