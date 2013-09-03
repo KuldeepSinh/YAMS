@@ -112,18 +112,24 @@ validate_single_level_wildcard({match, _}, Topic) ->
     end.    
 
 remove_all_sps_occurrences(Topic) ->
-    re:replace(Topic, "/\\+/", "", [global, {return, list}]).
+    T1 = re:replace(Topic, "/\\+/", "/", [{return, list}]),
+    case (Topic =:= T1) of 
+	true ->
+	    Topic;
+	_  ->
+	    remove_all_sps_occurrences(T1)
+    end.
 
 remove_all_leading_ps_occurrences(Topic) ->
-    T1 = re:replace(Topic, "\\+/$", "", [{return, list}]),
+    T1 = re:replace(Topic, "^\\+/", "", [{return, list}]),
     case (Topic =:= T1) of
         true ->
-            T1;
+            Topic;
         _ ->
             remove_all_leading_ps_occurrences(T1)
     end.
 remvoe_all_trailing_sp_occurrences(Topic) ->
-    T1 = re:replace(Topic, "^/\\+", "", [{return, list}]),
+    T1 = re:replace(Topic, "/\\+$", "", [{return, list}]),
     case (Topic =:= T1) of
         true ->
             T1;
