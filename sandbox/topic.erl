@@ -98,6 +98,39 @@ check_single_level_wildcard(Topic) ->
 validate_single_level_wildcard(nomatch, _Topic) -> 
     {ok, valid};
 %%if available...
-validate_single_level_wildcard({match, _}, Topic) -> 
-    %% <<todo>> develop logic.
-    ok.
+validate_single_level_wildcard({match, _}, Topic) ->
+    case (erlang:length(Topic)) of
+    1 -> 
+        {ok, valid};
+    _ ->
+        %% remove all the occurrences of /+/ (slash plus slash).        
+        T1 = remove_all_sps_occurrences(Topic),
+        T2 = remove_all_leading_ps_occurrences(T1),
+        T3 = remvoe_all_trailing_sp_occurrences(T2),
+        Presence = check_presence(T3, "\\+"),
+        validate_single_level_wildcard(Presence)
+    end.    
+
+remove_all_sps_occurrences(Topic) ->
+    re:replace(Topic, "/\\+/", "", [global, {return, list}]).
+
+remove_all_leading_ps_occurrences(Topic) ->
+    T1 = re:replace(Topic, "\\+/$", "", [{return, list}]),
+    case (Topic =:= T1) of
+        true ->
+            T1;
+        _ ->
+            remove_all_leading_ps_occurrences(T1)
+    end.
+remvoe_all_trailing_sp_occurrences(Topic) ->
+    T1 = re:replace(Topic, "^/\\+", "", [{return, list}]),
+    case (Topic =:= T1) of
+        true ->
+            T1;
+        _ ->
+            remvoe_all_trailing_sp_occurrences(T1)            
+    end.
+validate_single_level_wildcard({match, _}) ->
+    {error, invalid};
+validate_single_level_wildcard(_) ->
+    {ok, valid}.
