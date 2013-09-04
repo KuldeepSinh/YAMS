@@ -1,7 +1,7 @@
 λAMS
 ====
 
-Yet Another MQTT Server (in Erlang): 
+<b>Yet Another MQTT Server (in Erlang): </b>
 
 At present YAMS is in its very early stage. The idea is to learn Erlang/OTP while doing it. First make it work then make it beautiful. Other inspiration behind developing YAMS is to meet the technical challenges of handling millions of concurrent TCP connections. Of course for that to make possible, I look upwards to the awsome Erlang community to get mentored and inspired!!!
 
