@@ -9,9 +9,13 @@ At present YAMS is in its very early stage. The idea is to learn Erlang/OTP whil
 
 While the name, YAMS, is inspired by one of the populer web-servers YAWS (http://hyber.org/), I wish YAMS to have other traits set by its inspiration.
 
-<b>Reference: </b>
+<b>Major References: </b>
 
 1. MQTT  - http://mqtt.org/ (A TCP/IP based connectivity protocol for Internet of Things - IoT)
+2. Erlang and OTP in Action (An excellent book on Erlang OTP)
+3. Erlang Documentation
+4. Erlang mailing list (http://erlang.org/mailman/listinfo)
+5. All the great people, I follow on Twitter via @kuldeepsinhc.
 
 <b>Reminders: </b>
 
