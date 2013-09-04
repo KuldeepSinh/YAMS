@@ -1,7 +1,9 @@
 λAMS
 ====
 
-Yet Another MQTT Server (in Erlang): At present YAMS is in its very early stage. But the idea is to learn Erlang/OTP while doing it. First make it work and follow it by Writing beautiful Erlnag code. Other important goal is to meet the technical challenges of making YAMS handle millions of concurrent TCP connections. Of course for that to make possible, I look upwards to the awsome Erlang community to get mentored and inspired!!!
+Yet Another MQTT Server (in Erlang): 
+
+At present YAMS is in its very early stage. But the idea is to learn Erlang/OTP while doing it. First make it work and follow it by Writing beautiful Erlnag code. Other inspiration behind developing YAMS is to meet the technical challenges of handling millions of concurrent TCP connections. Of course for that to make possible, I look upwards to the awsome Erlang community to get mentored and inspired!!!
 
 Reference:
 
