@@ -12,6 +12,13 @@
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
 
+%% ==============================================
+%% MOST OF THIS MODULE WILL NOT BE USE,        %%
+%% INSTEAD TOPIC VALIDATION/PARSING WILL BE    %%
+%% HANDLED WITH THE HELP OF gen_fsm.           %% 
+%% ==============================================
+
+
 -module(topic).
 -compile(export_all).
 
