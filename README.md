@@ -7,7 +7,7 @@ At present YAMS is in its very early stage. The idea is to learn Erlang/OTP whil
 
 <b>Whats in the name: </b>
 
-While the name, YAMS, is inspired by one of the populer web-servers YAWS (http://hyber.org/), I wish YAMS to have other traits set by its inspiration.
+While the name, YAMS, is inspired by one of the populer web-servers YAWS (http://hyber.org/).
 
 <b>Major References: </b>
 
