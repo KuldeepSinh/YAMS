@@ -14,8 +14,6 @@ While the name, YAMS, is inspired by one of the populer web-servers YAWS (http:/
 1. MQTT  - http://mqtt.org/ (A TCP/IP based connectivity protocol for Internet of Things - IoT)
 2. Erlang and OTP in Action (An excellent book on Erlang OTP)
 3. Erlang Documentation
-4. Erlang mailing list (http://erlang.org/mailman/listinfo)
-5. All the great people, I follow on Twitter via @kuldeepsinhc.
 
 <b>Reminders: </b>
 
