@@ -3,7 +3,7 @@
 
 <b>Yet Another MQTT Server (in Erlang): </b>
 
-At present YAMS is in its very early stage. The idea is to learn Erlang/OTP while doing it. First make it work then make it beautiful. Other inspiration behind developing YAMS is to meet the technical challenges of handling hundreds of thousand concurrent TCP connections, if not millions. Of course for that to make possible, I look upwards to the awsome Erlang community to get mentored and inspired!!!
+At present YAMS is in its very early (inception) stage. The idea is to learn Erlang/OTP while doing it. First make it work then make it beautiful. Other inspiration behind developing YAMS is to meet the technical challenges of handling hundreds of thousand concurrent TCP connections, if not millions. Of course for that to make possible, I look upwards to the awsome Erlang community to get mentored and inspired!!!
 
 <b>Whats in the name: </b>
 
