@@ -40,6 +40,9 @@
 	 terminate/3, 
 	 code_change/4]).
 
+%% Event raiser
+-export([send_event/2]).
+
 -define(SERVER, ?MODULE).
 
 -record(state, {}).
@@ -47,6 +50,9 @@
 %%%===================================================================
 %%% API
 %%%===================================================================
+send_event(Pid, {char_received, Char}) ->
+    gen_fsm:sync_send_event(Pid, {char_received, Char}).
+    
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -58,7 +64,7 @@
 %% @end
 %%--------------------------------------------------------------------
 start_link() ->
-    gen_fsm:start_link({local, ?SERVER}, ?MODULE, [], []).
+    gen_fsm:start_link(?MODULE, [], []).
 
 %%%===================================================================
 %%% gen_fsm callbacks
@@ -78,7 +84,7 @@ start_link() ->
 %% @end
 %%--------------------------------------------------------------------
 init([]) ->
-    {ok, state_name, #state{}}.
+    {ok, ready, #state{}}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -96,19 +102,19 @@ init([]) ->
 %% @end
 %%--------------------------------------------------------------------
 ready(_Event, State) ->
-    {next_state, state_name, State}.
+    {next_state, ready, State}.
 
 hash(_Event, State) ->
-    {next_state, state_name, State}.
+    {next_state, hash, State}.
 
 plus(_Event, State) ->
-    {next_state, state_name, State}.
+    {next_state, plus, State}.
 
 slash(_Event, State) ->
-    {next_state, state_name, State}.
+    {next_state, slash, State}.
 
 char(_Event, State) ->
-    {next_state, state_name, State}.
+    {next_state, char, State}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -128,25 +134,50 @@ char(_Event, State) ->
 %%                   {stop, Reason, Reply, NewState}
 %% @end
 %%--------------------------------------------------------------------
-ready(_Event, _From, State) ->
-    Reply = ok,
-    {reply, Reply, state_name, State}.
+ready({char_received, $#}, _From, State) ->
+    {reply, valid, hash, State};
+ready({char_received, $+}, _From, State) ->
+    {reply, valid, plus, State};
+ready({char_received, $/}, _From, State) ->
+    {reply, valid, slash, State};
+ready({char_received, $\0}, _From, State) ->
+    {stop, normal, {error, invalid_character}, State};
+ready({char_received, _Char}, _From, State) ->
+    {reply, valid, char, State}.
 
-hash(_Event, _From, State) ->
-    Reply = ok,
-    {reply, Reply, state_name, State}.
+%% handle multi-level topic wild-card
+hash({char_received, _Char}, _From, State) ->
+    {stop, normal, {error, invalid_character}, State}.
 
-plus(_Event, _From, State) ->
-    Reply = ok,
-    {reply, Reply, state_name, State}.
+%% handle single-level topic wild-card
+plus({char_received, $/}, _From, State) ->
+    {reply, valid, slash, State};
+plus({char_received, _Char}, _From, State) ->
+    {stop, normal, {error, invalid_character}, State}.
 
-slash(_Event, _From, State) ->
-    Reply = ok,
-    {reply, Reply, state_name, State}.
+%% handle topic separator
+slash({char_received, $#}, _From, State) ->
+    {reply, valid, hash, State};
+slash({char_received, $+}, _From, State) ->
+    {reply, valid, plus, State};
+slash({char_received, $/}, _From, State) ->
+    {reply, valid, slash, State};
+slash({char_received, $\0}, _From, State) ->
+    {stop, normal, {error, invalid_character}, State};
+slash({char_received, _Char}, _From, State) ->
+    {reply, valid, char, State}.
 
-char(_Event, _From, State) ->
-    Reply = ok,
-    {reply, Reply, state_name, State}.
+%% handle other chars.
+char({char_received, $#}, _From, State) ->
+    {stop, normal, {error, invalid_character}, State};
+char({char_received, $+}, _From, State) ->
+    {stop, normal, {error, invalid_character}, State};
+char({char_received, $/}, _From, State) ->
+    {reply, valid, slash, State};
+char({char_received, $\0}, _From, State) ->
+    {stop, normal, {error, invalid_character}, State};
+char({char_received, _Char}, _From, State) ->
+    {reply, valid, char, State}.
 
 %%--------------------------------------------------------------------
 %% @private
