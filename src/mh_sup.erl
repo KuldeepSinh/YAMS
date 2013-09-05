@@ -57,11 +57,14 @@ init([]) ->
     SubscribeSup = {subscribe_sup, {subscribe_sup, start_link, []}, Restart, Shutdown, Type, [subscribe_sup]},
     %Suprevisor for message type = connect
     ConnectSup = {connect_sup, {connect_sup, start_link, []}, Restart, Shutdown, Type, [connect_sup]},
+    %Suprevisor for topic parser FSM
+    TParserSup = {topic_parser, {topic_parser_sup, start_link, []}, Restart, Shutdown, Type, [topic_parser_sup]},
+
 
     %%In the following list, the order of given supervisors is very important.
     %%Starting from the lowest level, supervisors will be started upto the highest level, 
     %%ensuring, lower level Supervisor is ready before it is used by the higher level.
-    {ok, {SupFlags, [CorrespondentSup, SubscribeSup, ConnectSup, RouterSup]}}.
+    {ok, {SupFlags, [CorrespondentSup, TParserSup, SubscribeSup, ConnectSup, RouterSup]}}.
 
 %% ===================================================================
 %% Non-API functions
