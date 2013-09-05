@@ -25,7 +25,8 @@
 -behaviour(gen_fsm).
 
 %% API
--export([start_link/0]).
+-export([start_link/0,
+	 create/0]).
 
 %% gen_fsm callbacks
 -export([init/1, 
@@ -53,7 +54,8 @@
 send_event(Pid, {char_received, Char}) ->
     gen_fsm:sync_send_event(Pid, {char_received, Char}).
     
-
+create() ->
+    topic_parser_sup:start_child().
 %%--------------------------------------------------------------------
 %% @doc
 %% Creates a gen_fsm process which calls Module:init/1 to
@@ -134,6 +136,7 @@ char(_Event, State) ->
 %%                   {stop, Reason, Reply, NewState}
 %% @end
 %%--------------------------------------------------------------------
+%% handle characters when FSM is ready.
 ready({char_received, $#}, _From, State) ->
     {reply, valid, hash, State};
 ready({char_received, $+}, _From, State) ->

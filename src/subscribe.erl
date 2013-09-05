@@ -30,12 +30,16 @@
 	 stop/1]).
 
 %% gen_server callbacks
--export([init/1, handle_call/3, handle_cast/2, handle_info/2,
-	 terminate/2, code_change/3]).
+-export([init/1, 
+	 handle_call/3, 
+	 handle_cast/2, 
+	 handle_info/2,
+	 terminate/2, 
+	 code_change/3]).
 
 -define(SERVER, ?MODULE). 
 
--record(state, {apid, dup, msg, self, msgID, subscriptions}).
+-record(state, {apid, dup, msg, self, msgID, subscriptions = []}).
 
 %%%===================================================================
 %%% API
@@ -157,9 +161,16 @@ process_message(#state{msg = <<ID:16, Payload/binary>>} = State)  ->
     NewState = State#state{msgID = ID},
     split_payload(Payload, NewState).
 
+%% Split payload into topics.
 split_payload(<<>>, #state{subscriptions = Subscriptions} = State) -> 
     NewState = State#state{subscriptions = lists:reverse(Subscriptions)},
-    validate_qos(NewState);
+    validate_qos(NewState),
+    case (NewState#state.subscriptions) of
+	[] ->
+	    {error, empty_subscriptions_list};
+	_ ->
+	    validate_topics(NewState#state.subscriptions)
+    end;
 split_payload(<<L:16, Rest/binary>>,  #state{subscriptions = Subscriptions} = State)
   when(size(Rest) >= (L + 1)) ->
     {Topic, RB} = split_binary(Rest, L),
@@ -169,9 +180,45 @@ split_payload(<<L:16, Rest/binary>>,  #state{subscriptions = Subscriptions} = St
 split_payload(_, _) ->
     {error, length_mismatch}.
 
+%% QoS validation.
 validate_qos([]) ->
-    ok;
-validate_qos(#state{subscriptions = [{_T, QoS}| T]}) 
-  when (QoS >=0 andalso QoS =< 3) -> 
-    validate_qos(T).
+    {ok, valid_qos};
+validate_qos(#state{subscriptions = [{_Topic, 0}| T]}) ->
+    validate_qos(T);
+validate_qos(#state{subscriptions = [{_Topic, 1}| T]}) ->
+    validate_qos(T);
+validate_qos(#state{subscriptions = [{_Topic, 2}| T]}) ->
+    validate_qos(T);
+validate_qos(_) ->
+    {error, invalid_qos}.
+
+%% Validate subscriptions
+validate_topics([]) ->
+    {ok, all_topics_valid};
+validate_topics([{[], _} |  _]) ->
+    {error, empty_topic};
+validate_topics([{Topic, _} | T]) -> 
+    TopicString = binary_to_list(Topic),
+    {ok, Pid} = topic_parser:create(),
+    case parse_topic(Pid, TopicString) of 
+	{ok, valid} ->
+	    validate_topics(T);
+	_  ->
+	    {error, invalid_topic}
+    end.
+
+parse_topic([], _) ->
+    {ok, valid};
+parse_topic(Pid, [H|T]) ->
+    case (topic_parser:send_event(Pid, {char_received, H})) of 
+	valid ->
+	    parse_topic(Pid, T);
+	_  ->
+	    error
+    end.
+    
+    
+    
+    
+
     

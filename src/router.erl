@@ -162,48 +162,49 @@ route(APid, _Status, <<1:4, 0:1, 0:2, 0:1, Rest/binary>>) ->
     {ok, RestMsg} = get_rest_bin(Rest), 
     connect:create(APid, RestMsg),
     {ok, connect};
-route(APid, connected, <<2:4, 0:1, 0:2, 0:1, Rest/binary>>) -> 
-    {ok, RestMsg} = get_rest_bin(Rest), 
-    {ok, connack};
-route(APid, connected, <<3:4, Dup:1, QoS:2, Retain:1, Rest/binary>>) -> 
-    {ok, RestMsg} = get_rest_bin(Rest), 
-    {ok, publish};
-route(APid, connected, <<4:4, 0:1, 0:2, 0:1, Rest/binary>>) -> 
-    {ok, RestMsg} = get_rest_bin(Rest),     
-    {ok, puback};
-route(APid, connected, <<5:4, 0:1, 0:2, 0:1, Rest/binary>>) -> 
-    {ok, RestMsg} = get_rest_bin(Rest),  
-    {ok, pubrec};
-route(APid, connected, <<6:4, Dup:1, QoS:2, 0:1, Rest/binary>>) -> 
-    {ok, RestMsg} = get_rest_bin(Rest), 
-    {ok, pubrel};
-route(APid, connected, <<7:4, 0:1, 0:2, 0:1, Rest/binary>>) -> 
-    {ok, RestMsg} = get_rest_bin(Rest), 
-    {ok, pubcomp};
+%%route(APid, connected, <<2:4, 0:1, 0:2, 0:1, Rest/binary>>) -> 
+%%    {ok, RestMsg} = get_rest_bin(Rest), 
+%%    {ok, connack};
+%%route(APid, connected, <<3:4, Dup:1, QoS:2, Retain:1, Rest/binary>>) -> 
+%%    {ok, RestMsg} = get_rest_bin(Rest), 
+%%    {ok, publish};
+%%route(APid, connected, <<4:4, 0:1, 0:2, 0:1, Rest/binary>>) -> 
+%%    {ok, RestMsg} = get_rest_bin(Rest),     
+%%    {ok, puback};
+%%route(APid, connected, <<5:4, 0:1, 0:2, 0:1, Rest/binary>>) -> 
+%%    {ok, RestMsg} = get_rest_bin(Rest),  
+%%    {ok, pubrec};
+%%route(APid, connected, <<6:4, Dup:1, QoS:2, 0:1, Rest/binary>>) -> 
+%%    {ok, RestMsg} = get_rest_bin(Rest), 
+%%    {ok, pubrel};
+%%route(APid, connected, <<7:4, 0:1, 0:2, 0:1, Rest/binary>>) -> 
+%%    {ok, RestMsg} = get_rest_bin(Rest), 
+%%    {ok, pubcomp};
 %% Last 3 bits of the First-byte are now called reserved bits in the next version.
 %% The required value for last 3 bits is 2 (which is same as required for the current version 4.0).
 %% That's why the value of the QoS field (second and third last bits) is set to 1.
 route(APid, connected, <<8:4, Dup:1, 1:2, 0:1, Rest/binary>>) -> 
     {ok, RestMsg} = get_rest_bin(Rest), 
-    {ok, subscribe};
-route(APid, connected, <<9:4, 0:1, 0:2, 0:1, Rest/binary>>) -> 
-    {ok, RestMsg} = get_rest_bin(Rest), 
-    {ok, suback};
-route(APid, connected, <<10:4, Dup:1, QoS:2, 0:1, Rest/binary>>) -> 
-    {ok, RestMsg} = get_rest_bin(Rest), 
-    {ok, unsubscribe};
-route(APid, connected, <<11:4, 0:1, 0:2, 0:1, Rest/binary>>) -> 
-    {ok, RestMsg} = get_rest_bin(Rest), 
-    {ok, unsuback};
-route(APid, connected, <<12:4, 0:1, 0:2, 0:1, Rest/binary>>) -> 
-    {ok, RestMsg} = get_rest_bin(Rest), 
-    {ok, pingreq};
-route(APid, connected, <<13:4, 0:1, 0:2, 0:1, Rest/binary>>) -> 
-    {ok, RestMsg} = get_rest_bin(Rest), 
-    {ok, pingresp};
-route(APid, connected, <<14:4, 0:1, 0:2, 0:1, Rest/binary>>) -> 
-    {ok, RestMsg} = get_rest_bin(Rest), 
-    {ok, disconnect}.
+    subscribe:create(APid, Dup, RestMsg),
+    {ok, subscribe}.
+%%route(APid, connected, <<9:4, 0:1, 0:2, 0:1, Rest/binary>>) -> 
+%%    {ok, RestMsg} = get_rest_bin(Rest), 
+%%    {ok, suback};
+%%route(APid, connected, <<10:4, Dup:1, QoS:2, 0:1, Rest/binary>>) -> 
+%%    {ok, RestMsg} = get_rest_bin(Rest), 
+%%    {ok, unsubscribe};
+%%route(APid, connected, <<11:4, 0:1, 0:2, 0:1, Rest/binary>>) -> 
+%%    {ok, RestMsg} = get_rest_bin(Rest), 
+%%    {ok, unsuback};
+%%route(APid, connected, <<12:4, 0:1, 0:2, 0:1, Rest/binary>>) -> 
+%%    {ok, RestMsg} = get_rest_bin(Rest), 
+%%    {ok, pingreq};
+%%route(APid, connected, <<13:4, 0:1, 0:2, 0:1, Rest/binary>>) -> 
+%%    {ok, RestMsg} = get_rest_bin(Rest), 
+%%    {ok, pingresp};
+%%route(APid, connected, <<14:4, 0:1, 0:2, 0:1, Rest/binary>>) -> 
+%%    {ok, RestMsg} = get_rest_bin(Rest), 
+%%    {ok, disconnect}.
 
 %%================================
 %% Decode remaining length (RestBin does not contain FirstByte)
