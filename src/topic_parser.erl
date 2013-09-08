@@ -54,9 +54,12 @@
 send_event(Pid, {char_received, Char}) ->
     gen_fsm:sync_send_event(Pid, {char_received, Char});
 %% send_all_state_event will be sent to any state which is currently active.
+%% IOW, stop event will be send to the FSM, irrespective of its current state.
+%% The stop event is an async event.
 send_event(Pid, stop) ->
     gen_fsm:send_all_state_event(Pid, stop).
-    
+
+%% Create a new FSM to validate a topic.    
 create() ->
     topic_parser_sup:start_child().
 
@@ -199,6 +202,8 @@ char({char_received, _Char}, _From, State) ->
 %%                   {stop, Reason, NewState}
 %% @end
 %%--------------------------------------------------------------------
+%% Asynch process to handle stop event.
+%% It a callback called by gen_fsm.
 handle_event(stop, _StateName, State) ->
     {stop, normal, State}.
 

@@ -169,6 +169,9 @@ split_payload(<<>>, #state{subscriptions = Subscriptions} = State) ->
 	[] ->
 	    {error, empty_subscriptions_list};
 	_ ->
+	    %% The list passed as a second paramter will be used to 
+	    %% collect PIDs of FMS  created to validate each topic,
+	    %% for the logging purpose.
 	    validate_topics(NewState#state.subscriptions, [])
     end;
 split_payload(<<L:16, Rest/binary>>,  #state{subscriptions = Subscriptions} = State)
@@ -197,6 +200,8 @@ validate_topics([], FSM_IDs) ->
     {ok, all_topics_valid, FSM_IDs};
 validate_topics([{[], _} |  _], _FSM_IDs) ->
     {error, empty_topic};
+%% Validate each topic one by one.
+%% If any topic turns out to be invalid, break.
 validate_topics([{Topic, _} | T], FSM_IDs) -> 
     TopicString = binary_to_list(Topic),
     {ok, Pid} = topic_parser:create(),
