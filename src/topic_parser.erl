@@ -52,10 +52,14 @@
 %%% API
 %%%===================================================================
 send_event(Pid, {char_received, Char}) ->
-    gen_fsm:sync_send_event(Pid, {char_received, Char}).
+    gen_fsm:sync_send_event(Pid, {char_received, Char});
+%% send_all_state_event will be sent to any state which is currently active.
+send_event(Pid, stop) ->
+    gen_fsm:send_all_state_event(Pid, stop).
     
 create() ->
     topic_parser_sup:start_child().
+
 %%--------------------------------------------------------------------
 %% @doc
 %% Creates a gen_fsm process which calls Module:init/1 to
@@ -195,8 +199,8 @@ char({char_received, _Char}, _From, State) ->
 %%                   {stop, Reason, NewState}
 %% @end
 %%--------------------------------------------------------------------
-handle_event(_Event, StateName, State) ->
-    {next_state, StateName, State}.
+handle_event(stop, _StateName, State) ->
+    {stop, normal, State}.
 
 %%--------------------------------------------------------------------
 %% @private

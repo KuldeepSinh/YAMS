@@ -169,7 +169,7 @@ split_payload(<<>>, #state{subscriptions = Subscriptions} = State) ->
 	[] ->
 	    {error, empty_subscriptions_list};
 	_ ->
-	    validate_topics(NewState#state.subscriptions)
+	    validate_topics(NewState#state.subscriptions, [])
     end;
 split_payload(<<L:16, Rest/binary>>,  #state{subscriptions = Subscriptions} = State)
   when(size(Rest) >= (L + 1)) ->
@@ -193,21 +193,23 @@ validate_qos(_) ->
     {error, invalid_qos}.
 
 %% Validate subscriptions
-validate_topics([]) ->
-    {ok, all_topics_valid};
-validate_topics([{[], _} |  _]) ->
+validate_topics([], FSM_IDs) ->
+    {ok, all_topics_valid, FSM_IDs};
+validate_topics([{[], _} |  _], _FSM_IDs) ->
     {error, empty_topic};
-validate_topics([{Topic, _} | T]) -> 
+validate_topics([{Topic, _} | T], FSM_IDs) -> 
     TopicString = binary_to_list(Topic),
     {ok, Pid} = topic_parser:create(),
     case parse_topic(Pid, TopicString) of 
 	{ok, valid} ->
-	    validate_topics(T);
+	    topic_parser:send_event(Pid, stop),
+	    validate_topics(T, [Pid] ++ FSM_IDs);
 	_  ->
 	    {error, invalid_topic}
     end.
 
-parse_topic([], _) ->
+%% parse topic. (call FSM).
+parse_topic(_Pid, []) ->
     {ok, valid};
 parse_topic(Pid, [H|T]) ->
     case (topic_parser:send_event(Pid, {char_received, H})) of 
@@ -216,9 +218,3 @@ parse_topic(Pid, [H|T]) ->
 	_  ->
 	    error
     end.
-    
-    
-    
-    
-
-    
