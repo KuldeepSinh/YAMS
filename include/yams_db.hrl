@@ -7,5 +7,12 @@
 
 
 %% subcription table will map Client ID with the topics 
-%% client is subscribing to.
--record(subscription, {cid, topic, qos}).
+%% subscribed/unsubscribed by the client.
+-record(subscription, {cid, %%Client ID
+		       timestamp, %% Date and Time when the record was inserted.
+		       topic, %%Topic
+		       qos, %%QoS
+		       status, %% Status (subscribed/unsubscribed)
+		       msgID %% Message ID
+		      }).
+

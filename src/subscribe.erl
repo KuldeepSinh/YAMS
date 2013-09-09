@@ -170,9 +170,6 @@ split_payload(<<>>, #state{subscriptions = Subscriptions} = State) ->
 	[] ->
 	    {error, empty_subscriptions_list};
 	_ ->
-	    %% The list passed as a second paramter will be used to 
-	    %% collect PIDs of FMS  created to validate each topic,
-	    %% for the logging purpose.
 	    validate_topics(NewState#state.subscriptions)
     end;
 split_payload(<<L:16, Rest/binary>>,  #state{subscriptions = Subscriptions} = State)
