@@ -122,6 +122,7 @@ handle_cast(_Message, State) ->
 %% @end
 %%--------------------------------------------------------------------
 handle_info(timeout, #state{self = CPid} = State) ->
+    %% <ToDo> Implement FSM to process message.
     process_message(State),   
     stop(CPid),
     {noreply, State};

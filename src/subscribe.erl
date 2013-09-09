@@ -123,6 +123,7 @@ handle_cast(_Msg, State) ->
 %% @end
 %%--------------------------------------------------------------------
 handle_info(timeout, #state{self = SPid} = State) ->
+%% <ToDo> Implement FSM to process message.
     process_message(State),   
     stop(SPid),
     {noreply, State};
@@ -172,7 +173,7 @@ split_payload(<<>>, #state{subscriptions = Subscriptions} = State) ->
 	    %% The list passed as a second paramter will be used to 
 	    %% collect PIDs of FMS  created to validate each topic,
 	    %% for the logging purpose.
-	    validate_topics(NewState#state.subscriptions, [])
+	    validate_topics(NewState#state.subscriptions)
     end;
 split_payload(<<L:16, Rest/binary>>,  #state{subscriptions = Subscriptions} = State)
   when(size(Rest) >= (L + 1)) ->
@@ -196,19 +197,19 @@ validate_qos(_) ->
     {error, invalid_qos}.
 
 %% Validate subscriptions
-validate_topics([], FSM_IDs) ->
-    {ok, all_topics_valid, FSM_IDs};
-validate_topics([{[], _} |  _], _FSM_IDs) ->
+validate_topics([]) ->
+    {ok, all_topics_valid};
+validate_topics([{[], _} | _]) ->
     {error, empty_topic};
 %% Validate each topic one by one.
 %% If any topic turns out to be invalid, break.
-validate_topics([{Topic, _} | T], FSM_IDs) -> 
+validate_topics([{Topic, _} | T]) -> 
     TopicString = binary_to_list(Topic),
     {ok, Pid} = topic_parser:create(),
     case parse_topic(Pid, TopicString) of 
 	{ok, valid} ->
 	    topic_parser:send_event(Pid, stop),
-	    validate_topics(T, [Pid] ++ FSM_IDs);
+	    validate_topics(T);
 	_  ->
 	    {error, invalid_topic}
     end.
