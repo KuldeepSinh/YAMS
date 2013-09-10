@@ -25,9 +25,10 @@
 -behaviour(gen_server).
 
 %% API
--export([start_link/0, 
-	 start_link/1, 
-	 stop/0]).
+-export([start_link/0, %% Start listener (server) on the default port # 8789
+	 start_link/1, %% Start listener (server) on the port passed by the client.
+	 stop/0 %% Stop the server.
+	]).
 
 %% gen_server callbacks
 -export([init/1, 
@@ -57,7 +58,7 @@ start_link() ->
 
 %%--------------------------------------------------------------------
 %% @doc
-%% Starts the server
+%% Starts the server on the port given by the user.
 %%
 %% @spec start_link(Port::integer()) -> {ok, Pid}
 %% where
@@ -141,8 +142,8 @@ handle_cast(stop, State) ->
 %% @end
 %%--------------------------------------------------------------------
 handle_info(timeout, #state{lsock = LSock} = State) ->
-    %create_acceptor(LSock),
-    pool_acceptors(LSock, 10),
+    %%create a pool of acceptors
+    create_acceptor_pool(LSock, 10),
     {noreply, State}.
 
 %%--------------------------------------------------------------------
@@ -173,6 +174,6 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
-pool_acceptors(LSock, Count) ->
+create_acceptor_pool(LSock, Count) ->
     [acceptor:create(LSock) || _ <- lists:seq(1, Count)],
     ok.
