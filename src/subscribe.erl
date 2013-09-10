@@ -25,8 +25,8 @@
 -behaviour(gen_server).
 
 %% API
--export([start_link/3,
-	 create/3, 
+-export([start_link/4,
+	 create/4, 
 	 stop/1]).
 
 %% gen_server callbacks
@@ -39,7 +39,7 @@
 
 -define(SERVER, ?MODULE). 
 
--record(state, {apid, dup, msg, self, msgID, subscriptions = []}).
+-record(state, {apid, clientID, dup, msg, self, msgID, subscriptions = []}).
 
 %%%===================================================================
 %%% API
@@ -52,11 +52,11 @@
 %% @spec start_link() -> {ok, Pid} | ignore | {error, Error}
 %% @end
 %%--------------------------------------------------------------------
-start_link(APid, Dup, Msg) ->
-    gen_server:start_link(?MODULE, [APid, Dup, Msg], []).
+create(APid, ClientID, Dup, Msg) ->
+    subscribe_sup:start_child(APid, ClientID, Dup, Msg).
 
-create(APid, Dup, Msg) ->
-    subscribe_sup:start_child(APid, Dup, Msg).
+start_link(APid, ClientID, Dup, Msg) ->
+    gen_server:start_link(?MODULE, [APid, ClientID, Dup, Msg], []).
 
 stop(SPid) ->
     gen_server:call(SPid, stop).
@@ -76,8 +76,8 @@ stop(SPid) ->
 %%                     {stop, Reason}
 %% @end
 %%--------------------------------------------------------------------
-init([Apid, Dup, Msg]) ->
-    {ok, #state{apid = Apid, dup = Dup, msg = Msg, self = self()}, 0}.
+init([Apid, ClientID, Dup, Msg]) ->
+    {ok, #state{apid = Apid, clientID = ClientID, dup = Dup, msg = Msg, self = self()}, 0}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -170,7 +170,12 @@ split_payload(<<>>, #state{subscriptions = Subscriptions} = State) ->
 	[] ->
 	    {error, empty_subscriptions_list};
 	_ ->
-	    validate_topics(NewState#state.subscriptions)
+	    case (validate_topics(NewState#state.subscriptions)) of
+		{ok, all_topics_valid} ->
+		    ok;
+		_ ->
+		    error
+	    end
     end;
 split_payload(<<L:16, Rest/binary>>,  #state{subscriptions = Subscriptions} = State)
   when(size(Rest) >= (L + 1)) ->

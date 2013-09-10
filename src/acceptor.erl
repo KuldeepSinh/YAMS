@@ -27,7 +27,7 @@
 %% API
 -export([start_link/1, 
 	 create/1,
-	 reply/2]).
+	 connack/2]).
 
 %% gen_server callbacks
 -export([init/1, 
@@ -47,20 +47,31 @@
 
 %%--------------------------------------------------------------------
 %% @doc
+%% Ask supervisor of the acceptor to create an acceptor process.
+%% @end
+%%--------------------------------------------------------------------
+create(LSock) ->
+    acceptor_sup:start_child(LSock).
+
+%%--------------------------------------------------------------------
+%% @doc
 %% Starts the server
+%% Acceptor supervisor will call this function, to create acceptor.
 %%
 %% @spec start_link() -> {ok, Pid} | ignore | {error, Error}
 %% @end
 %%--------------------------------------------------------------------
 start_link(LSock) ->
     gen_server:start_link(?MODULE, [LSock], []).
-    
+  
+%%--------------------------------------------------------------------
+%% @doc
+%% connack back to the client.
+%% @end
+%%--------------------------------------------------------------------
+connack(APid, Msg) ->
+    gen_server:cast(APid, {connack, Msg}).
 
-create(LSock) ->
-    acceptor_sup:start_child(LSock).
-
-reply(APid, Msg) ->
-    gen_server:cast(APid, {reply, Msg}).
 %%%===================================================================
 %%% gen_server callbacks
 %%%===================================================================
@@ -68,7 +79,7 @@ reply(APid, Msg) ->
 %%--------------------------------------------------------------------
 %% @private
 %% @doc
-%% Initializes the server
+%% Initializes the server (acceptor process)
 %%
 %% @spec init(Args) -> {ok, State} |
 %%                     {ok, State, Timeout} |
@@ -77,8 +88,7 @@ reply(APid, Msg) ->
 %% @end
 %%--------------------------------------------------------------------
 init([LSock]) ->   
-    {ok, #state{lsock = LSock, apid = self()}, 0}.
-    
+    {ok, #state{lsock = LSock, apid = self()}, 0}.  
 
 %%--------------------------------------------------------------------
 %% @private
@@ -108,14 +118,14 @@ handle_call(_Request, _From, State) ->
 %%                                  {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
-handle_cast({reply, {ClientID, KAT, {ok, Connack}}}, #state{asock = ASock, apid = APid} = State) ->
+handle_cast({connack, {ClientID, KAT, {ok, Connack}}}, #state{asock = ASock, apid = APid} = State) ->
     %% Add a record into the cid_to_apid table.
     client_to_apid:insert(ClientID, APid),
     %% Create a new state
     NewState = State#state{status = connected, clientID = ClientID, kat = KAT},
     gen_tcp:send(ASock, Connack),
     {noreply, NewState};
-handle_cast({reply, {error, Connack}}, #state{asock = ASock} = State) ->
+handle_cast({connack, {error, Connack}}, #state{asock = ASock} = State) ->
     gen_tcp:send(ASock, Connack),
     {noreply, State};
 handle_cast(_Msg, State) ->
@@ -139,8 +149,8 @@ handle_info(timeout, #state{lsock = LSock} = State) ->
     %% create a new acceptor
     create(LSock),	
     {noreply,State#state{asock = ASock}};
-handle_info({tcp, ASock, Msg}, #state{apid = APid, status = Status} = State) ->
-    router:create(APid, Status, Msg),
+handle_info({tcp, ASock, Msg}, #state{apid = APid, status = Status, clientID = ClientID} = State) ->
+    router:create(APid, Status, ClientID, Msg),
     %% make ASock ready to accept next messages
     inet:setopts(ASock, [{active, once}]),
     {noreply, State};

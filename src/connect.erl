@@ -173,7 +173,7 @@ validate_protocol(#state{msg = <<6:16, "MQIsdp", 3:8, _Rest/binary>>} = State) -
 
 %% if protocol name or version is invalid, send connack with code = 1.
 validate_protocol(#state{apid = APid}) ->
-     acceptor:reply(APid, connack(1)).
+     acceptor:connack(APid, connack(1)).
 
 %% ================================
 %% Get connection flags.
@@ -212,7 +212,7 @@ validate_client(#state{apid = APid, payload = [{L, ID} | _]} = State) ->
 	{ok, _, _} ->
 	    get_wills(State);
 	{error, _} ->	    
-	    acceptor:reply(APid, connack(2))
+	    acceptor:connack(APid, connack(2))
     end.
 
 %% Validate client identifier
@@ -284,4 +284,4 @@ authenticate(#state{apid = APid, user = _User, pswd = _Psw, payload = [{_L, Clie
 authorize(APid, ClientID, KAT) ->
     %% Send client ID, so that acceptor will be able to 
     %% enter an entry in the directory for client-apid mapping.
-    acceptor:reply(APid, {ClientID, KAT, connack(0)}).
+    acceptor:connack(APid, {ClientID, KAT, connack(0)}).

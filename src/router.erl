@@ -25,8 +25,8 @@
 -behaviour(gen_server).
 
 %% API
--export([start_link/3,
-	 create/3,
+-export([start_link/4,
+	 create/4,
 	 stop/1]).
 
 %% gen_server callbacks
@@ -40,11 +40,19 @@
 -define(SERVER, ?MODULE). 
 -define(MAX_LENGTH, 268435455).
 
--record(state, {apid, msg, self, status}).
+-record(state, {apid, %% PID of associated Acceptor.
+		clientID, %% Client ID of associated Client.
+		msg, %% Message received from the acceptor.
+		self, %% PID of self (RPid).
+		status %% status of the acceptor (connected/undefined).
+	       }).
 
 %%%===================================================================
 %%% API
 %%%===================================================================
+
+create(APid, Status, ClientID, Msg) ->
+    router_sup:start_child(APid, Status, ClientID, Msg).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -53,11 +61,8 @@
 %% @spec start_link() -> {ok, Pid} | ignore | {error, Error}
 %% @end
 %%--------------------------------------------------------------------
-start_link(APid, Status, Msg) ->
-    gen_server:start_link(?MODULE, [APid, Status, Msg], []).
-
-create(APid, Status, Msg) ->
-    router_sup:start_child(APid, Status, Msg).
+start_link(APid, Status, ClientID, Msg) ->
+    gen_server:start_link(?MODULE, [APid, Status, ClientID, Msg], []).
 
 stop(RPid) ->
     gen_server:call(RPid, stop).
@@ -76,8 +81,8 @@ stop(RPid) ->
 %%                     {stop, Reason}
 %% @end
 %%--------------------------------------------------------------------
-init([APid, Status, Msg]) ->
-    {ok, #state{apid = APid, msg = Msg, self = self(), status = Status}, 0}.
+init([APid, Status, ClientID, Msg]) ->
+    {ok, #state{apid = APid, status = Status, clientID = ClientID, msg = Msg, self = self()}, 0}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -122,8 +127,8 @@ handle_cast(_Msg, State) ->
 %%                                   {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
-handle_info(timeout, #state{apid = APid, msg = Msg, self = RPid, status = Status} = State) ->
-    {ok, _Type} = route(APid, Status, Msg),
+handle_info(timeout, #state{apid = APid, status = Status, clientID = ClientID, msg = Msg, self = RPid} = State) ->
+    {ok, _Type} = route(APid, Status, ClientID, Msg),
     stop(RPid),
     {noreply, State};
 handle_info(_Info, State) ->
@@ -158,7 +163,7 @@ code_change(_OldVsn, State, _Extra) ->
 %%% Internal functions
 %%%===================================================================
 %% Identify message type.
-route(APid, _Status, <<1:4, 0:1, 0:2, 0:1, Rest/binary>>) -> 
+route(APid, _Status, _ClientID, <<1:4, 0:1, 0:2, 0:1, Rest/binary>>) -> 
     {ok, RestMsg} = get_rest_bin(Rest), 
     connect:create(APid, RestMsg),
     {ok, connect};
@@ -183,9 +188,9 @@ route(APid, _Status, <<1:4, 0:1, 0:2, 0:1, Rest/binary>>) ->
 %% Last 3 bits of the First-byte are now called reserved bits in the next version.
 %% The required value for last 3 bits is 2 (which is same as required for the current version 4.0).
 %% That's why the value of the QoS field (second and third last bits) is set to 1.
-route(APid, connected, <<8:4, Dup:1, 1:2, 0:1, Rest/binary>>) -> 
+route(APid, connected, ClientID, <<8:4, Dup:1, 1:2, 0:1, Rest/binary>>) -> 
     {ok, RestMsg} = get_rest_bin(Rest), 
-    subscribe:create(APid, Dup, RestMsg),
+    subscribe:create(APid, ClientID, Dup, RestMsg),
     {ok, subscribe}.
 %%route(APid, connected, <<9:4, 0:1, 0:2, 0:1, Rest/binary>>) -> 
 %%    {ok, RestMsg} = get_rest_bin(Rest), 
