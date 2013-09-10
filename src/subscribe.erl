@@ -172,7 +172,7 @@ split_payload(<<>>, #state{subscriptions = Subscriptions} = State) ->
 	_ ->
 	    case (validate_topics(NewState#state.subscriptions)) of
 		{ok, all_topics_valid} ->
-		    ok;
+		    {ok, save_to_db};
 		_ ->
 		    error
 	    end
