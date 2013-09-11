@@ -22,6 +22,7 @@
 %%%-------------------------------------------------------------------
 -module(yams_lib).
 
+-define(MAX_LENGTH, 268435455).
 %% APIs
 -export([
 	 encode_l/1 %% encode length.

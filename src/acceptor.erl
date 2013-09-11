@@ -27,7 +27,8 @@
 %% API
 -export([create/1, %% Call supervisor to create child process, that is the acceptor process.
 	 start_link/1, %% Call gen_server to initialize acceptor process.
-	 connack/2 %% Reply in response to the CONNECT message.
+	 connack/2, %% Reply in response to the CONNECT message.
+	 suback/2
 	]).
 
 %% gen_server callbacks
@@ -78,6 +79,14 @@ start_link(LSock) ->
 %%--------------------------------------------------------------------
 connack(APid, Msg) ->
     gen_server:cast(APid, {connack, Msg}).
+
+%%--------------------------------------------------------------------
+%% @doc
+%% suback back to the client.
+%% @end
+%%--------------------------------------------------------------------
+suback(APid, Msg) ->
+    gen_server:cast(APid, {suback, Msg}).
 
 %%%===================================================================
 %%% gen_server callbacks
@@ -134,6 +143,10 @@ handle_cast({connack, {ClientID, KAT, {ok, Connack}}}, #state{asock = ASock, api
     {noreply, NewState};
 handle_cast({connack, {error, Connack}}, #state{asock = ASock} = State) ->
     gen_tcp:send(ASock, Connack),
+    {noreply, State};
+handle_cast({suback, SubAck}, #state{asock = ASock} = State) ->
+    %%Send suback
+    gen_tcp:send(ASock, SubAck),
     {noreply, State};
 handle_cast(_Msg, State) ->
     {noreply, State}.

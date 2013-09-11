@@ -172,7 +172,8 @@ split_payload(<<>>, #state{subscriptions = Subscriptions} = State) ->
 	_ ->
 	    case (validate_topics(NewState#state.subscriptions)) of
 		{ok, all_topics_valid} ->
-		    subscriptions:insert(NewState#state.subscriptions);
+		    subscriptions:insert(NewState#state.subscriptions),
+		    send_suback(NewState#state.apid, NewState#state.msgID, NewState#state.subscriptions);		
 		_ ->
 		    error
 	    end
@@ -226,3 +227,25 @@ parse_topic(Pid, [H|T]) ->
 	_  ->
 	    error
     end.
+
+
+%% Send suback back to the client.
+send_suback(APid, MsgID, Subscriptions) ->    
+    {ok, QoS_bin} = create_qos_bin(Subscriptions),
+    PaylodLength = 2 + byte_size(QoS_bin),
+    RemainingLength = yams_lib:encode_l(PaylodLength),
+    acceptor:suback(APid, suback(RemainingLength, MsgID, QoS_bin)),
+    
+    ok.
+
+create_qos_bin(Subscriptions) ->
+    QoS_List = [<<QoS:8>> || {_ClientID, _Topic, QoS, _MsgID} <- Subscriptions],
+    QoS_bin = list_to_binary(QoS_List),
+    {ok, QoS_bin}.
+
+
+
+%% Response suback
+suback(RemainingLength, MsgID, Qs) ->
+    <<9:4, 0:1, 0:2, 0:1, RemainingLength/binary, MsgID:16, Qs/binary>>.
+	
