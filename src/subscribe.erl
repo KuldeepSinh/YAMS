@@ -172,16 +172,16 @@ split_payload(<<>>, #state{subscriptions = Subscriptions} = State) ->
 	_ ->
 	    case (validate_topics(NewState#state.subscriptions)) of
 		{ok, all_topics_valid} ->
-		    {ok, save_to_db};
+		    subscriptions:insert(NewState#state.subscriptions);
 		_ ->
 		    error
 	    end
     end;
-split_payload(<<L:16, Rest/binary>>,  #state{subscriptions = Subscriptions} = State)
+split_payload(<<L:16, Rest/binary>>,  #state{clientID = ClientID, msgID = MsgID, subscriptions = Subscriptions} = State)
   when(size(Rest) >= (L + 1)) ->
     {Topic, RB} = split_binary(Rest, L),
     <<QoS:8, RestBin/binary>> = RB,
-    NewState = State#state{subscriptions = [{Topic, QoS}] ++ Subscriptions},
+    NewState = State#state{subscriptions = [{ClientID, Topic, QoS, MsgID}] ++ Subscriptions},
     split_payload(RestBin, NewState);
 split_payload(_, _) ->
     {error, length_mismatch}.
@@ -189,11 +189,11 @@ split_payload(_, _) ->
 %% QoS validation.
 validate_qos([]) ->
     {ok, valid_qos};
-validate_qos(#state{subscriptions = [{_Topic, 0}| T]}) ->
+validate_qos(#state{subscriptions = [{_ClientID, _Topic, 0, _MsgID}| T]}) ->
     validate_qos(T);
-validate_qos(#state{subscriptions = [{_Topic, 1}| T]}) ->
+validate_qos(#state{subscriptions = [{_ClientID, _Topic, 1, _MsgID}| T]}) ->
     validate_qos(T);
-validate_qos(#state{subscriptions = [{_Topic, 2}| T]}) ->
+validate_qos(#state{subscriptions = [{_ClientID, _Topic, 2, _MsgID}| T]}) ->
     validate_qos(T);
 validate_qos(_) ->
     {error, invalid_qos}.
@@ -205,7 +205,7 @@ validate_topics([{[], _} | _]) ->
     {error, empty_topic};
 %% Validate each topic one by one.
 %% If any topic turns out to be invalid, break.
-validate_topics([{Topic, _} | T]) -> 
+validate_topics([{_ClientID, Topic, _Qos, _MsgID} | T]) -> 
     TopicString = binary_to_list(Topic),
     {ok, Pid} = topic_parser:create(),
     case parse_topic(Pid, TopicString) of 

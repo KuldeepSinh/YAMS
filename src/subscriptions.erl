@@ -31,7 +31,8 @@
 %% "subscription" is a disc based table, which stores 
 %% the mapping between Client ID and associated Topics, their QoS and Message ID.
 insert(Subscriptions) ->
-    [mnesia:dirty_write(#subscription{cid = Cid, topic = Topic, qos = QoS, msgID = MsgID}) || {Cid, Topic, QoS, MsgID} <- Subscriptions].
+    [mnesia:dirty_write(#subscription{cid = Cid, topic = Topic, qos = QoS, msgID = MsgID}) || {Cid, Topic, QoS, MsgID} <- Subscriptions],
+    {ok, topics_susbscribed}.
 
 %% This fucntion will search the "subscription" table based on the given Client ID.
 lookup(Cid) ->
