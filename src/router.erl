@@ -170,9 +170,10 @@ route(APid, _Status, _ClientID, <<1:4, 0:1, 0:2, 0:1, Rest/binary>>) ->
 %%route(APid, connected, <<2:4, 0:1, 0:2, 0:1, Rest/binary>>) -> 
 %%    {ok, RestMsg} = get_rest_bin(Rest), 
 %%    {ok, connack};
-%%route(APid, connected, <<3:4, Dup:1, QoS:2, Retain:1, Rest/binary>>) -> 
-%%    {ok, RestMsg} = get_rest_bin(Rest), 
-%%    {ok, publish};
+route(APid, connected, ClientID, <<3:4, Dup:1, QoS:2, Retain:1, Rest/binary>>) -> 
+    {ok, RestMsg} = get_rest_bin(Rest),
+    publish:create(APid, ClientID, Dup, QoS, Retain, RestMsg),
+    {ok, publish};
 %%route(APid, connected, <<4:4, 0:1, 0:2, 0:1, Rest/binary>>) -> 
 %%    {ok, RestMsg} = get_rest_bin(Rest),     
 %%    {ok, puback};
