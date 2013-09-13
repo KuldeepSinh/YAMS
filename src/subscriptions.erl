@@ -35,5 +35,8 @@ insert(Subscriptions) ->
     {ok, topics_susbscribed}.
 
 %% This fucntion will search the "subscription" table based on the given Client ID.
-lookup(Cid) ->
-    mnesia:dirty_read(subscription, Cid).
+lookup({cid, Cid}) ->
+    mnesia:dirty_read(subscription, Cid);
+%% This fucntion will search the "subscription" table based on the given topic.
+lookup({topic, Topic}) ->
+    mnesia:dirty_read(subscription, Topic).
