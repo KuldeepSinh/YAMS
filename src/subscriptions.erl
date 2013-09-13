@@ -16,7 +16,7 @@
 %%% @author  KuldeepSinh Chauhan
 %%% @copyright (C) 2013, 
 %%% @doc
-%%%     This module opens the acceptor-socket for incomming client messages.
+%%%     This module is intended to perform CRUD operations for subsriptions.
 %%% @end
 %%% Created :  11 Sep 2013 by  KuldeepSinh Chauhan
 %%%-------------------------------------------------------------------
