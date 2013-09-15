@@ -22,11 +22,13 @@
 %%%-------------------------------------------------------------------
 
 -module(subscriptions).
+
 -export([insert/1, %% Insert topic.
 	 lookup/1, %% Lookup topic.
 	 delete/1 %% Delete topic based on the Cid
 	]).
 -include_lib("stdlib/include/qlc.hrl").
+
 -include("../include/yams_db.hrl").
 
 

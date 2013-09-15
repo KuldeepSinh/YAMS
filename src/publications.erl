@@ -20,30 +20,35 @@
 %%% @end
 %%% Created :  13 Sep 2013 by  KuldeepSinh Chauhan
 %%%-------------------------------------------------------------------
-
 -module(publications).
+
 -export([insert/1, %% Insert topic.
 	 lookup/1 %% Lookup topic.
 	]).
 
+-include_lib("stdlib/include/qlc.hrl").
+
 -include("../include/yams_db.hrl").
 
-%% "subscription" is a disc based table, which stores 
-%% the mapping between Client ID and associated Topics, their QoS and Message ID.
+%% "publication" is a disc based table.
 insert({ClientID, MsgID, Topic, Dup, QoS, Retain, Msg, Is_Retained}) ->
-    mnesia:dirty_write(#publication
-		       {
-			 cid = ClientID,
-			 msgID = MsgID, 
-			 topic = Topic, 
-			 dup = Dup, 
-			 qos = QoS, 
-			 retain = Retain, 
-			 msg = Msg, 
-			 is_retained = Is_Retained
-		       }),
+    F = fun() ->
+		mnesia:write(#publication
+			     {
+			       cid = ClientID,
+			       msgID = MsgID, 
+			       topic = Topic, 
+			       dup = Dup, 
+			       qos = QoS, 
+			       retain = Retain, 
+			       msg = Msg, 
+			       is_retained = Is_Retained
+			     })
+	end,
+    mnesia:transaction(F),
     {ok, publication_saved}.
 
-%% This fucntion will search the "subscription" table based on the given Client ID.
+%% This fucntion will search the "publication" table based on the given Message ID.
 lookup(MsgID) ->
-    mnesia:dirty_read(publication, MsgID).
+    Query = qlc:q([Publication || Publication <- mnesia:table(publication), Publication#publication.msgID =:= MsgID]),
+    yams_db:execute(Query).
