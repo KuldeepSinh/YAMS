@@ -23,7 +23,8 @@
 
 -module(subscriptions).
 -export([insert/1, %% Insert topic.
-	 lookup/1 %% Lookup topic.
+	 lookup/1, %% Lookup topic.
+	 delete/1 %% Delete topic based on the Cid
 	]).
 -include_lib("stdlib/include/qlc.hrl").
 -include("../include/yams_db.hrl").
@@ -33,10 +34,19 @@
 %% the mapping between Client ID and associated Topics, their QoS and Message ID.
 insert(Subscriptions) ->
     F = fun() ->
-		[mnesia:write(#subscription{cid = Cid, topic = Topic, qos = QoS, msgID = MsgID}) || {Cid, Topic, QoS, MsgID} <- Subscriptions]
+		do_insertion(Subscriptions)
 	end,
     mnesia:transaction(F),
     {ok, topics_susbscribed}.
+
+%% Delete "subscription" based on passed Cid.
+%% CAUTION : This will delete all the records with matching Cid.
+delete(Cid) ->
+    Oid = {subscription, Cid},
+    F = fun() ->
+		mnesia:delete(Oid)
+	end,
+    mnesia:transaction(F).
 
 %% This fucntion will search the "subscription" table based on the given Client ID.
 lookup({cid, Cid}) ->
@@ -46,3 +56,33 @@ lookup({cid, Cid}) ->
 lookup({topic, Topic}) ->
     Query = qlc:q([Subscription || Subscription <- mnesia:table(subscription), Subscription#subscription.topic =:= Topic]),
     yams_db:execute(Query).
+
+
+%% Insert/Update each subscription.
+do_insertion([]) ->
+    ok;
+do_insertion([{Cid, Topic, QoS, MsgID} | T]) ->
+    %% Create a query
+    Query = qlc:q([Subscription || Subscription <- mnesia:table(subscription), 
+				   Subscription#subscription.cid =:= Cid,
+				   Subscription#subscription.topic =:= Topic
+		  ]),
+    %%Execute a query and check if any duplicate received.
+    case qlc:e(Query) of 
+	{error, _, _} ->
+	    %% If no duplicate if found, write it in the DB.
+	    mnesia:write(#subscription{cid = Cid, topic = Topic, qos = QoS, msgID = MsgID});
+	List ->
+	    %% Delete all the duplicate subsciptions.
+	    delete_all(List),
+	    %% Write new subscription in DB.
+	    mnesia:write(#subscription{cid = Cid, topic = Topic, qos = QoS, msgID = MsgID})
+    end,
+    do_insertion(T).
+
+%% Delete all subscriptions.
+delete_all([]) ->
+    ok;
+delete_all([H | T]) ->
+    mnesia:delete_object(subscription, H, write),
+    delete_all(T).
