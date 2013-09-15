@@ -62,25 +62,28 @@ lookup({topic, Topic}) ->
 do_insertion([]) ->
     ok;
 do_insertion([{Cid, Topic, QoS, MsgID} | T]) ->
-    %% Create a query
+    %% Find duplicate subscriptions
+    Result = find_duplicates(Cid, Topic),
+    %% Delete all duplicate results
+    delete_all(Result),
+    %% Write new subscription in DB.
+    mnesia:write(#subscription{cid = Cid, topic = Topic, qos = QoS, msgID = MsgID}),
+    do_insertion(T).
+
+
+%% Find duplicate subscriptions
+find_duplicates(Cid, Topic) ->
+    %%create query to find duplicates based on matching Cid and Topic
     Query = qlc:q([Subscription || Subscription <- mnesia:table(subscription), 
 				   Subscription#subscription.cid =:= Cid,
 				   Subscription#subscription.topic =:= Topic
 		  ]),
     %%Execute a query and check if any duplicate received.
-    case qlc:e(Query) of 
-	{error, _, _} ->
-	    %% If no duplicate if found, write it in the DB.
-	    mnesia:write(#subscription{cid = Cid, topic = Topic, qos = QoS, msgID = MsgID});
-	List ->
-	    %% Delete all the duplicate subsciptions.
-	    delete_all(List),
-	    %% Write new subscription in DB.
-	    mnesia:write(#subscription{cid = Cid, topic = Topic, qos = QoS, msgID = MsgID})
-    end,
-    do_insertion(T).
+    qlc:e(Query).
 
 %% Delete all subscriptions.
+delete_all({error, _, _}) ->
+    ok;
 delete_all([]) ->
     ok;
 delete_all([H | T]) ->
