@@ -23,6 +23,7 @@
 -module(yams_db).
 -export([only_once/0, %% Execute this function for only once to create DB schema 
 	 start/0, %% Start mnesia, should be called as a part of the application start.
+	 stop/0, %% Stop mnesia
 	 execute/1 %% Execute query passed  as a parameter.
 	]).
 -include("../include/yams_db.hrl").
@@ -53,6 +54,10 @@ start() ->
     mnesia:start(),
     %% Wait for tables.
     mnesia:wait_for_tables([cid_to_apid, subscription], 20000).
+
+%% Stop mnesia.
+stop() ->
+    mnesia:stop().
 
 %% Execute Query passed to the function. 
 execute(Query) -> 

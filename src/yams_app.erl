@@ -33,5 +33,8 @@ start(_StartType, _StartArgs) ->
 	Other ->
 	    {error, Other}
     end.
+
+%% Stop application.
 stop(_State) ->
+    yams_db:stop(),
     ok.
