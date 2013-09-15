@@ -25,18 +25,24 @@
 -export([insert/1, %% Insert topic.
 	 lookup/1 %% Lookup topic.
 	]).
-
+-include_lib("stdlib/include/qlc.hrl").
 -include("../include/yams_db.hrl").
+
 
 %% "subscription" is a disc based table, which stores 
 %% the mapping between Client ID and associated Topics, their QoS and Message ID.
 insert(Subscriptions) ->
-    [mnesia:dirty_write(#subscription{cid = Cid, topic = Topic, qos = QoS, msgID = MsgID}) || {Cid, Topic, QoS, MsgID} <- Subscriptions],
+    F = fun() ->
+		[mnesia:write(#subscription{cid = Cid, topic = Topic, qos = QoS, msgID = MsgID}) || {Cid, Topic, QoS, MsgID} <- Subscriptions]
+	end,
+    mnesia:transaction(F),
     {ok, topics_susbscribed}.
 
 %% This fucntion will search the "subscription" table based on the given Client ID.
 lookup({cid, Cid}) ->
-    mnesia:dirty_read(subscription, Cid);
+    Query = qlc:q([X || X <- mnesia:table(subscription), X#subscription.cid =:= Cid]),
+    yams_db:execute(Query);
 %% This fucntion will search the "subscription" table based on the given topic.
 lookup({topic, Topic}) ->
-    mnesia:dirty_read(subscription, Topic).
+    Query = qlc:q([X || X <- mnesia:table(subscription), X#subscription.topic =:= Topic]),
+    yams_db:execute(Query).
