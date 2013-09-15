@@ -21,8 +21,10 @@
 %%% Created :  28 Aug 2013 by  KuldeepSinh Chauhan
 %%%-------------------------------------------------------------------
 -module(yams_db).
--export([only_once/0, 
-	 init/0]).
+-export([only_once/0, %% Execute this function for only once to create DB schema 
+	 start/0, %% Start mnesia, should be called as a part of the application start.
+	 execute/1 %% Execute query passed  as a parameter.
+	]).
 -include("../include/yams_db.hrl").
 
 %% This function should be executed only-once to create DB schema and tables.
@@ -40,12 +42,22 @@ only_once() ->
     mnesia:create_table(cid_to_apid, [{attributes, record_info(fields, cid_to_apid)}]),
     %% Subscription table will store Client ID and its subscribed topics.
     %% Contents of this table will be stored on the disk too, along with in the RAM.
-    mnesia:create_table(subscription, [{disc_copies, [node()]}, {type, bag}, {attributes, record_info(fields, subscription)}]).
+    mnesia:create_table(subscription, [{disc_copies, [node()]}, {type, bag}, {attributes, record_info(fields, subscription)}]),
+    %% Stop mnesia.
+    mnesia:stop().
 
 %% Assumption: Above function was already executed in past to create schema and tables.
 %% This function will be executed each time we start YAMS, application.
-init() ->
+start() ->
     %% Start mnesia
     mnesia:start(),
     %% Wait for tables.
     mnesia:wait_for_tables([cid_to_apid, subscription], 20000).
+
+%% Execute Query passed to the function. 
+execute(Query) -> 
+    F = fun() ->
+		qlc:e(Query)
+	end,
+    {atomic, Val} = mnesia:transaction(F),
+    Val.
