@@ -47,9 +47,9 @@ delete(Cid) ->
 	end,
     mnesia:transaction(F).
 
-%% This fucntion will search the "subscription" table based on the given Client ID.
+%% This fucntion will search the "cid_to_apid" table based on the given Client ID.
 lookup({cid, Cid}) ->
-    Query = qlc:q([X || X <- mnesia:table(subscription), X#subscription.cid =:= Cid]),
+    Query = qlc:q([Mapping || Mapping <- mnesia:table(cid_to_apid), Mapping#cid_to_apid.cid =:= Cid]),
     case yams_db:execute(Query) of
 	[{cid_to_apid, Cid, APid}] ->
 	    case is_pid_alive(APid) of	    

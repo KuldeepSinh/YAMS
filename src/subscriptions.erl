@@ -40,9 +40,9 @@ insert(Subscriptions) ->
 
 %% This fucntion will search the "subscription" table based on the given Client ID.
 lookup({cid, Cid}) ->
-    Query = qlc:q([X || X <- mnesia:table(subscription), X#subscription.cid =:= Cid]),
+    Query = qlc:q([Subscription || Subscription <- mnesia:table(subscription), Subscription#subscription.cid =:= Cid]),
     yams_db:execute(Query);
 %% This fucntion will search the "subscription" table based on the given topic.
 lookup({topic, Topic}) ->
-    Query = qlc:q([X || X <- mnesia:table(subscription), X#subscription.topic =:= Topic]),
+    Query = qlc:q([Subscription || Subscription <- mnesia:table(subscription), Subscription#subscription.topic =:= Topic]),
     yams_db:execute(Query).
