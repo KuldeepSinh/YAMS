@@ -12,8 +12,19 @@
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
 
--module(yams_sup).
+%%%-------------------------------------------------------------------
+%%% @author KuldeepSinh Chauhan
+%%% @copyright (C) 2013
+%%% @doc yams_sup is the root supervisor. 
+%%%      It starts listener_sup for listening incoming TCP connection requests.
+%%%      It also starts msg_sup for accepting (receiving) and sending messages among clients.
+%%% @end
+%%% Created : Aug 2013 by KuldeepSinh Chauhan
+%%%-------------------------------------------------------------------
 
+
+-module(yams_sup).
+%% yams_sup implements supervisor interface.
 -behaviour(supervisor).
 
 %% API

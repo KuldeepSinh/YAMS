@@ -16,11 +16,10 @@
 %%% @author  KuldeepSinh Chauhan
 %%% @copyright (C) 2013, 
 %%% @doc
-%%%     Message Receiver : module to accept and handle messages from clients connected over TCP.
+%%%     msg_sup : module to accept(receive) and send messages from/to clients connected over TCP.
 %%% @end
 %%% Created : 10 Aug 2013 by  KuldeepSinh Chauhan
 %%%-------------------------------------------------------------------
-
 -module(msg_sup).
 
 -behaviour(supervisor).
@@ -52,9 +51,9 @@ init([]) ->
     Shutdown = infinity,
     Type = supervisor,
 
-    %Suprevisor for Message Acceptors 
-    MHSup = {mh_sup, {mh_sup, start_link, []}, Restart, Shutdown, Type, [mh_sup]},
     %Supervisor for Message Handler
+    MHSup = {mh_sup, {mh_sup, start_link, []}, Restart, Shutdown, Type, [mh_sup]},
+    %Suprevisor for Message Acceptor
     AceptorSup = {acceptor_sup, {acceptor_sup, start_link, []}, Restart, Shutdown, Type, [acceptor_sup]},
 
     %%In the following list, the order of given supervisors is very important.

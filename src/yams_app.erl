@@ -12,8 +12,19 @@
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
 
+%%%-------------------------------------------------------------------
+%%% @author KuldeepSinh Chauhan
+%%% @copyright (C) 2013
+%%% @doc yams_app is the main application. 
+%%%      It starts yams_db followed by yums_sup supervisor. 
+%%%      While stopping yams_app, yams_db is stopped first.
+%%% @end
+%%% Created : Aug 2013 by KuldeepSinh Chauhan
+%%%-------------------------------------------------------------------
+
 -module(yams_app).
 
+%% Application behavior
 -behaviour(application).
 
 %% Application callbacks
@@ -23,6 +34,12 @@
 %% Application callbacks
 %% ===================================================================
 
+%% -------------------------------------------------------------------
+%% @doc Start YAMS Application. 
+%%      First step is to start yams_db, followed by yams_sup.
+%% @end
+%% @spec start(_,_) -> {'error',_} | {'ok',_}.
+%% -------------------------------------------------------------------  
 start(_StartType, _StartArgs) ->
     %% Start database.
     yams_db:start(),
@@ -34,7 +51,11 @@ start(_StartType, _StartArgs) ->
 	    {error, Other}
     end.
 
-%% Stop application.
+%% -------------------------------------------------------------------
+%% @doc First stop yams_db and then Stop YAMS application.
+%% @end
+%% @spec spec stop(_) -> 'ok'.
+%% -------------------------------------------------------------------  
 stop(_State) ->
     yams_db:stop(),
     ok.

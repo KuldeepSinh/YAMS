@@ -16,7 +16,7 @@
 %%% @author  KuldeepSinh Chauhan
 %%% @copyright (C) 2013, 
 %%% @doc
-%%%     Suprevises t_listener process.
+%%%     Suprevises listener process.
 %%% @end
 %%% Created : 11 Aug 2013 by  KuldeepSinh Chauhan
 %%%-------------------------------------------------------------------
