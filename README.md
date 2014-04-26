@@ -1,4 +1,5 @@
 [![Stories in Ready](https://badge.waffle.io/kuldeepsinh/yams.png?label=ready&title=Ready)](https://waffle.io/kuldeepsinh/yams)
+[![Stories in Ready](https://badge.waffle.io/kuldeepsinh/yams.png?label=ready&title=Ready)](https://waffle.io/kuldeepsinh/yams)
 λAMS
 ====
 
