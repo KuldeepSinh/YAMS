@@ -21,6 +21,6 @@
                   kernel,
                   stdlib
                  ]},
-  {mod, { yams_app, []}},
+  {mod, {yams_app, []}},
   {env, []}
  ]}.

@@ -15,13 +15,12 @@
 %%%-------------------------------------------------------------------
 %%% @author KuldeepSinh Chauhan
 %%% @copyright (C) 2013,
-%%% @doc
-%%% This module opens TCP listener socket for incoming client connections.
+%%% @doc This module opens TCP listener socket for incoming client connections.
 %%% @end
 %%% Created : 8 Aug 2013 by KuldeepSinh Chauhan
 %%%-------------------------------------------------------------------
 -module(listener).
-
+%% listener is a gen_server. 
 -behaviour(gen_server).
 
 %% API

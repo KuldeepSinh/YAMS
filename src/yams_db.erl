@@ -40,10 +40,18 @@ only_once() ->
     
     %% This table will store mapping between ID of the connected client and its associated Acceptor Pid.
     %% This will be a RAM based table.
-    mnesia:create_table(cid_to_apid, [{attributes, record_info(fields, cid_to_apid)}]),
+    mnesia:create_table(cid_to_apid, 
+			[
+			 {attributes, record_info(fields, cid_to_apid)}
+			]),
     %% Subscription table will store Client ID and its subscribed topics.
     %% Contents of this table will be stored on the disk too, along with in the RAM.
-    mnesia:create_table(subscription, [{disc_copies, [node()]}, {type, bag}, {attributes, record_info(fields, subscription)}]),
+    mnesia:create_table(subscription, 
+			[
+			 {disc_copies,[node()]}, 
+			 {type, bag}, 
+			 {attributes, record_info(fields, subscription)}
+			]),
     %% Stop mnesia.
     mnesia:stop().
 
