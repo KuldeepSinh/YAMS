@@ -16,10 +16,11 @@
 %%% @author KuldeepSinh Chauhan
 %%% @copyright (C) 2013
 %%% @doc yams_sup is the root supervisor. 
-%%%      It starts listener_sup for listening incoming TCP connection requests.
-%%%      It also starts msg_sup for accepting (receiving) and sending messages among clients.
+%%%      It starts tcp_sup for handling communication over TCP.
+%%%      It also starts mqtt_sup implementation of the protocol.
 %%% @end
 %%% Created : Aug 2013 by KuldeepSinh Chauhan
+%%% Modified : Feb 2015 by KuldeepSinh Chauhan
 %%%-------------------------------------------------------------------
 
 
@@ -54,15 +55,15 @@ init([]) ->
     Shutdown = infinity,
     Type = supervisor,
 
-    %Suprevisor for Connection Listener 
-    ListenerSup = {listener_sup, {listener_sup, start_link, []}, Restart, Shutdown, Type, [listener_sup]},
-    %Supervisor for Messages
-    MsgSup = {msg_sup, {msg_sup, start_link, []}, Restart, Shutdown, Type, [msg_sup]},
+    %Suprevisor for communication over TCP 
+    TCPSup = {tcp_sup, {tcp_sup, start_link, []}, Restart, Shutdown, Type, [tcp_sup]},
+    %Supervisor for implementing MQTT protocol
+    MQTTSup = {mqtt_sup, {mqtt_sup, start_link, []}, Restart, Shutdown, Type, [mqtt_sup]},
 
     %%In the following list, the order of given supervisors is very important.
     %%Starting from the lowest level, supervisors will be started upto the highest level, 
     %%ensuring, lower level Supervisor is ready before it is used by the higher level.
-    {ok, {SupFlags, [MsgSup, ListenerSup]}}.
+    {ok, {SupFlags, [MQTTSup, TCPSup]}}.
 
 %% ===================================================================
 %% Non-API functions

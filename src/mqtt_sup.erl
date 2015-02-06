@@ -16,11 +16,12 @@
 %%% @author  KuldeepSinh Chauhan
 %%% @copyright (C) 2013, 
 %%% @doc
-%%%     This module will supervise (message) handlers.
+%%%     This module will supervise implementation of the MQTT protocol.
 %%% @end
-%%% Created : 10 Aug 2013 by  KuldeepSinh Chauhan
+%%% Created : 10 Aug 2013 by KuldeepSinh Chauhan
+%%% Updated : 05 Feb 2015 by KuldeepSinh Chauhan
 %%%-------------------------------------------------------------------
--module(mh_sup).
+-module(mqtt_sup).
 
 -behaviour(supervisor).
 
@@ -51,22 +52,44 @@ init([]) ->
 
     %Suprevisor for message Routers 
     RouterSup = {router_sup, {router_sup, start_link, []}, Restart, Shutdown, Type, [router_sup]},
+
+    %Suprevisor for message type = ping request
+    PingRequestSup = {pingreq_sup, {pingreq_sup, start_link, []}, Restart, Shutdown, Type, [pingreq_sup]},
+
+    %Suprevisor for message type = disconnect
+    DisconnectSup = {disconnect_sup, {disconnect_sup, start_link, []}, Restart, Shutdown, Type, [disconnect_sup]},
+
     %Suprevisor for message type = connect
     ConnectSup = {connect_sup, {connect_sup, start_link, []}, Restart, Shutdown, Type, [connect_sup]},
+
     %Suprevisor for message type = publish
     PublishSup = {publish_sup, {publish_sup, start_link, []}, Restart, Shutdown, Type, [publish_sup]},
+
+    %Suprevisor for message type = unsubscribe
+    UnsubscribeSup = {unsubscribe_sup, {unsubscribe_sup, start_link, []}, Restart, Shutdown, Type, [unsubscribe_sup]},
+
     %Suprevisor for message type = subscribe
     SubscribeSup = {subscribe_sup, {subscribe_sup, start_link, []}, Restart, Shutdown, Type, [subscribe_sup]},
+
     %Suprevisor for topic parser FSM
-    TParserSup = {topic_parser, {topic_parser_sup, start_link, []}, Restart, Shutdown, Type, [topic_parser_sup]},
+    %TParserSup = {topic_parser, {topic_parser_sup, start_link, []}, Restart, Shutdown, Type, [topic_parser_sup]},
+
     %Suprevisor for message Correspondents
-    CorrespondentSup = {correspondent_sup, {correspondent_sup, start_link, []}, Restart, Shutdown, Type, [correspondent_sup]},
+    %CorrespondentSup = {correspondent_sup, {correspondent_sup, start_link, []}, Restart, Shutdown, Type, [correspondent_sup]},
 
 
     %%In the following list, the order of given supervisors is very important.
     %%Starting from the lowest level, supervisors will be started upto the highest level, 
     %%ensuring, lower level Supervisor is ready before it is used by the higher level.
-    {ok, {SupFlags, [CorrespondentSup, TParserSup, SubscribeSup, PublishSup, ConnectSup, RouterSup]}}.
+    {ok, {SupFlags, [%CorrespondentSup, 
+                     %TParserSup, 
+                     UnsubscribeSup, 
+                     SubscribeSup, 
+                     PublishSup, 
+                     PingRequestSup,
+                     DisconnectSup, 
+                     ConnectSup, 
+                     RouterSup]}}.
 
 %% ===================================================================
 %% Non-API functions

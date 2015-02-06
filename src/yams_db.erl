@@ -16,7 +16,8 @@
 %%% @author  KuldeepSinh Chauhan
 %%% @copyright (C) 2013, 
 %%% @doc
-%%%     This module opens the acceptor-socket for incomming client messages.
+%%%     This module handles DB schema creation (should be done manually only once).
+%%%     It also handles, starting and stopping Mnesia.
 %%% @end
 %%% Created :  28 Aug 2013 by  KuldeepSinh Chauhan
 %%%-------------------------------------------------------------------
@@ -29,7 +30,7 @@
 -include("../include/yams_db.hrl").
 
 %% This function should be executed only-once to create DB schema and tables.
-%% This function will be executed from the erlang shell.
+%% This function should be executed manually from the erlang shell.
 only_once() ->
     %% Create schema
     mnesia:create_schema([node()]),
@@ -55,7 +56,7 @@ only_once() ->
     %% Stop mnesia.
     mnesia:stop().
 
-%% Assumption: Above function was already executed in past to create schema and tables.
+%% Assumption: Above function was already executed manually in past to create schema and tables.
 %% This function will be executed each time we start YAMS, application.
 start() ->
     %% Start mnesia

@@ -16,11 +16,12 @@
 %%% @author  KuldeepSinh Chauhan
 %%% @copyright (C) 2013, 
 %%% @doc
-%%%     msg_sup : module to accept(receive) and send messages from/to clients connected over TCP.
+%%%     tcp_sup : module to listen and accept messages from/to clients connected over TCP.
 %%% @end
-%%% Created : 10 Aug 2013 by  KuldeepSinh Chauhan
+%%% Created : 10 Aug 2013 by KuldeepSinh Chauhan
+%%% Updated : 05 Feb 2015 by KuldeepSinh Chauhan
 %%%-------------------------------------------------------------------
--module(msg_sup).
+-module(tcp_sup).
 
 -behaviour(supervisor).
 
@@ -51,15 +52,16 @@ init([]) ->
     Shutdown = infinity,
     Type = supervisor,
 
-    %Supervisor for Message Handler
-    MHSup = {mh_sup, {mh_sup, start_link, []}, Restart, Shutdown, Type, [mh_sup]},
+    %Supervisor for Listening over TCP port
+    ListenerSup = {listener_sup, {listener_sup, start_link, []}, Restart, Shutdown, Type, [listener_sup]},
+
     %Suprevisor for Message Acceptor
-    AceptorSup = {acceptor_sup, {acceptor_sup, start_link, []}, Restart, Shutdown, Type, [acceptor_sup]},
+    AcceptorSup = {acceptor_sup, {acceptor_sup, start_link, []}, Restart, Shutdown, Type, [acceptor_sup]},
 
     %%In the following list, the order of given supervisors is very important.
     %%Starting from the lowest level, supervisors will be started upto the highest level, 
     %%ensuring, lower level Supervisor is started before it is used by the higher level.
-    {ok, {SupFlags, [MHSup, AceptorSup]}}.
+    {ok, {SupFlags, [AcceptorSup, ListenerSup]}}.
 
 %% ===================================================================
 %% Non-API functions
