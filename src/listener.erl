@@ -24,16 +24,25 @@
 
 -behaviour(gen_server).
 
-%% API
--export([start_link/0]).
+ -export([
+	  start_link/0, %% Start listener (server) on the default port # 8789
+	  start_link/1, %% Start listener (server) on the port passed by the client.
+	  stop/0 %% Stop the server.
+ 	]).
 
 %% gen_server callbacks
--export([init/1, handle_call/3, handle_cast/2, handle_info/2,
-	 terminate/2, code_change/3]).
+-export([
+	 init/1, 
+	 handle_call/3, 
+	 handle_cast/2, 
+	 handle_info/2,
+	 terminate/2, 
+	 code_change/3
+	]).
 
--define(SERVER, ?MODULE).
-
--record(state, {}).
+ -define(SERVER, ?MODULE).
+ -define(DEFAULT_PORT, 8789).
+ -record(state, {port, lsock}).
 
 %%%===================================================================
 %%% API
@@ -41,13 +50,35 @@
 
 %%--------------------------------------------------------------------
 %% @doc
-%% Starts the server
+%% Starts the server using default port = 8789
 %%
-%% @spec start_link() -> {ok, Pid} | ignore | {error, Error}
+%% @spec start_link() -> {ok, Pid}
 %% @end
 %%--------------------------------------------------------------------
 start_link() ->
-    gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
+    start_link(?DEFAULT_PORT).
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Starts the server on the port given by the user.
+%%
+%% @spec start_link(Port::integer()) -> {ok, Pid}
+%% where
+%% Pid = pid()
+%% @end
+%%--------------------------------------------------------------------
+start_link(Port) ->
+    gen_server:start_link({local, ?SERVER}, ?MODULE, [Port], []).
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Stops the server
+%%
+%% @spec stop() -> ok
+%% @end
+%%--------------------------------------------------------------------
+stop() ->
+    gen_server:cast(?SERVER, stop).
 
 %%%===================================================================
 %%% gen_server callbacks
@@ -64,8 +95,12 @@ start_link() ->
 %%                     {stop, Reason}
 %% @end
 %%--------------------------------------------------------------------
-init([]) ->
-    {ok, #state{}}.
+init([Port]) ->
+    % start a TCP listener.
+    {ok, LSock} = gen_tcp:listen(Port, [binary, {active, false}]),
+    % In following function calls, 3rd argument = 0 fires timeout, 
+    % which will be handled by function handle_info/2
+    {ok, #state{port=Port, lsock=LSock}, 0}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -84,6 +119,7 @@ init([]) ->
 handle_call(_Request, _From, State) ->
     Reply = ok,
     {reply, Reply, State}.
+
 
 %%--------------------------------------------------------------------
 %% @private
@@ -108,7 +144,9 @@ handle_cast(_Msg, State) ->
 %%                                   {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
-handle_info(_Info, State) ->
+handle_info(timeout, #state{lsock = LSock} = State) ->
+    %%create an acceptor
+    acceptor:create(LSock),
     {noreply, State}.
 
 %%--------------------------------------------------------------------

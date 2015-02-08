@@ -26,15 +26,31 @@
 -behaviour(gen_event).
 
 %% API
--export([start_link/0, add_handler/0]).
+-export([
+	 create/1, %% Call supervisor to create child process, that is the acceptor process.
+	 start_link/1 %% Call gen_server to initialize acceptor process.
+	]).
 
 %% gen_event callbacks
--export([init/1, handle_event/2, handle_call/2, 
-	 handle_info/2, terminate/2, code_change/3]).
+-export([
+	 init/1, 
+	 handle_event/2, 
+	 handle_call/2, 
+	 handle_info/2, 
+	 terminate/2, 
+	 code_change/3
+	]).
 
 -define(SERVER, ?MODULE).
 
--record(state, {}).
+-record(state, 
+	{
+	  lsock, %% Listening socket.
+	  asock, %% Acceptor socket.
+	  apid %% PID of the acceptor. 
+	}
+       ).
+
 
 %%%===================================================================
 %%% API
@@ -42,23 +58,22 @@
 
 %%--------------------------------------------------------------------
 %% @doc
-%% Creates an event manager
-%%
-%% @spec start_link() -> {ok, Pid} | {error, Error}
+%% Ask supervisor of the acceptor to create an acceptor process.
 %% @end
 %%--------------------------------------------------------------------
-start_link() ->
-    gen_event:start_link({local, ?SERVER}).
+create(LSock) ->
+    acceptor_sup:start_child(LSock).
 
 %%--------------------------------------------------------------------
 %% @doc
-%% Adds an event handler
+%% Starts the server
+%% Acceptor supervisor will call this function, to create acceptor.
 %%
-%% @spec add_handler() -> ok | {'EXIT', Reason} | term()
+%% @spec start_link() -> {ok, Pid} | ignore | {error, Error}
 %% @end
 %%--------------------------------------------------------------------
-add_handler() ->
-    gen_event:add_handler(?SERVER, ?MODULE, []).
+start_link(LSock) ->
+    gen_server:start_link(?MODULE, [LSock], []).
 
 %%%===================================================================
 %%% gen_event callbacks
@@ -73,8 +88,8 @@ add_handler() ->
 %% @spec init(Args) -> {ok, State}
 %% @end
 %%--------------------------------------------------------------------
-init([]) ->
-    {ok, #state{}}.
+init([LSock]) ->   
+    {ok, #state{lsock = LSock, apid = self()}, 0}.  
 
 %%--------------------------------------------------------------------
 %% @private
@@ -122,8 +137,16 @@ handle_call(_Request, State) ->
 %%                         remove_handler
 %% @end
 %%--------------------------------------------------------------------
+handle_info(timeout, #state{lsock = LSock} = State) ->
+    %% accept client connection
+    {ok, ASock} = gen_tcp:accept(LSock),
+    %% make ASock ready to accept first messages
+    inet:setopts(ASock, [{active, once}]),
+    %% create a new acceptor
+    create(LSock),	
+    {noreply,State#state{asock = ASock}};
 handle_info(_Info, State) ->
-    {ok, State}.
+    {noreply, State}.
 
 %%--------------------------------------------------------------------
 %% @private
