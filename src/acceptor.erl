@@ -47,7 +47,9 @@
 	{
 	  lsock, %% Listening socket.
 	  asock, %% Acceptor socket.
-	  apid %% PID of the acceptor. 
+	  apid, %% PID of the acceptor. 
+	  status, %% Status of the client. (connected/undefined)
+	  clientID %% ID of the connected client.
 	}
        ).
 
@@ -145,6 +147,16 @@ handle_info(timeout, #state{lsock = LSock} = State) ->
     %% create a new acceptor
     create(LSock),	
     {noreply,State#state{asock = ASock}};
+handle_info({tcp, ASock, Msg}, #state{apid = APid, status = Status, clientID = ClientID} = State) ->
+    %% create a new router and send the message to it,
+    %% along with the status and the ID of the client.
+    router:create(APid, Status, ClientID, Msg),
+    %% make ASock ready to accept next messages
+    inet:setopts(ASock, [{active, once}]),
+    {noreply, State};
+%% Close the acceptor (socket).
+handle_info({tcp_closed, _ASock}, State) ->
+    {stop, normal, State};
 handle_info(_Info, State) ->
     {noreply, State}.
 
