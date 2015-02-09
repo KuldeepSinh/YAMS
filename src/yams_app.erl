@@ -28,7 +28,10 @@
 -behaviour(application).
 
 %% Application callbacks
--export([start/2, stop/1]).
+-export([
+	 start/2, %% Start YAMS app.
+	 stop/1 %% Stop YAMS app.
+	]).
 
 %% ===================================================================
 %% Application callbacks

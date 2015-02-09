@@ -23,19 +23,20 @@
 %%%-------------------------------------------------------------------
 -module(acceptor).
 
--behaviour(gen_event).
+-behaviour(gen_server).
 
 %% API
 -export([
 	 create/1, %% Call supervisor to create child process, that is the acceptor process.
-	 start_link/1 %% Call gen_server to initialize acceptor process.
+	 start_link/1, %% Call gen_server to initialize acceptor process.
+	 stop/1 %% Stop acceptor
 	]).
 
 %% gen_event callbacks
 -export([
 	 init/1, 
-	 handle_event/2, 
-	 handle_call/2, 
+	 handle_cast/2, 
+	 handle_call/3, 
 	 handle_info/2, 
 	 terminate/2, 
 	 code_change/3
@@ -77,6 +78,15 @@ create(LSock) ->
 start_link(LSock) ->
     gen_server:start_link(?MODULE, [LSock], []).
 
+%%--------------------------------------------------------------------
+%% @doc
+%% Stop server.
+%% @end
+%%--------------------------------------------------------------------
+stop(APid) ->
+    gen_server:cast(APid, stop).
+
+
 %%%===================================================================
 %%% gen_event callbacks
 %%%===================================================================
@@ -96,35 +106,35 @@ init([LSock]) ->
 %%--------------------------------------------------------------------
 %% @private
 %% @doc
-%% Whenever an event manager receives an event sent using
-%% gen_event:notify/2 or gen_event:sync_notify/2, this function is
-%% called for each installed event handler to handle the event.
+%% Handling cast messages
 %%
-%% @spec handle_event(Event, State) ->
-%%                          {ok, State} |
-%%                          {swap_handler, Args1, State1, Mod2, Args2} |
-%%                          remove_handler
+%% @spec handle_cast(Msg, State) -> {noreply, State} |
+%%                                  {noreply, State, Timeout} |
+%%                                  {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
-handle_event(_Event, State) ->
-    {ok, State}.
+handle_cast(stop, State) ->
+    {stop, normal, State};
+handle_cast(_Msg, State) ->
+    {noreply, State}.
 
 %%--------------------------------------------------------------------
 %% @private
 %% @doc
-%% Whenever an event manager receives a request sent using
-%% gen_event:call/3,4, this function is called for the specified
-%% event handler to handle the request.
+%% Handling call messages
 %%
-%% @spec handle_call(Request, State) ->
-%%                   {ok, Reply, State} |
-%%                   {swap_handler, Reply, Args1, State1, Mod2, Args2} |
-%%                   {remove_handler, Reply}
+%% @spec handle_call(Request, From, State) ->
+%%                                   {reply, Reply, State} |
+%%                                   {reply, Reply, State, Timeout} |
+%%                                   {noreply, State} |
+%%                                   {noreply, State, Timeout} |
+%%                                   {stop, Reason, Reply, State} |
+%%                                   {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
-handle_call(_Request, State) ->
+handle_call(_Request, _From, State) ->
     Reply = ok,
-    {ok, Reply, State}.
+    {reply, Reply, State}.
 
 %%--------------------------------------------------------------------
 %% @private

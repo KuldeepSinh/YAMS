@@ -69,13 +69,11 @@ init([]) ->
     MaxSecondsBetweenRestarts = 1,
 
     SupFlags = {RestartStrategy, MaxRestarts, MaxSecondsBetweenRestarts},
-
     Restart = permanent,
     Shutdown = 2000,
     Type = worker,
 
-    Listener = {listener, {listener, start_link, []},
-	      Restart, Shutdown, Type, [listener]},
+    Listener = {listener, {listener, start_link, []}, Restart, Shutdown, Type, [listener]},
 
     {ok, {SupFlags, [Listener]}}.
 

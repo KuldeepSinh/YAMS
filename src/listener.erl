@@ -27,7 +27,7 @@
  -export([
 	  start_link/0, %% Start listener (server) on the default port # 8789
 	  start_link/1, %% Start listener (server) on the port passed by the client.
-	  stop/0 %% Stop the server.
+	  stop/0 %% Stop the listener server.
  	]).
 
 %% gen_server callbacks
@@ -127,10 +127,12 @@ handle_call(_Request, _From, State) ->
 %% Handling cast messages
 %%
 %% @spec handle_cast(Msg, State) -> {noreply, State} |
-%%                                  {noreply, State, Timeout} |
-%%                                  {stop, Reason, State}
+%% {noreply, State, Timeout} |
+%% {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
+handle_cast(stop, State) ->
+    {stop, normal, State};
 handle_cast(_Msg, State) ->
     {noreply, State}.
 
