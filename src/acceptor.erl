@@ -19,7 +19,6 @@
 %%%     This module opens the acceptor-socket for incomming client messages.
 %%% @end
 %%% Created :  8 Aug 2013 by KuldeepSinh Chauhan
-%%% Updated : 05 Feb 2015 by KuldeepSinh Chauhan
 %%%-------------------------------------------------------------------
 -module(acceptor).
 
@@ -49,8 +48,7 @@
 	  lsock, %% Listening socket.
 	  asock, %% Acceptor socket.
 	  apid, %% PID of the acceptor. 
-	  status, %% Status of the client. (connected/undefined)
-	  clientID %% ID of the connected client.
+	  status %% Status of the client. (connected/undefined)
 	}
        ).
 
@@ -70,7 +68,7 @@ create(LSock) ->
 %%--------------------------------------------------------------------
 %% @doc
 %% Starts the server
-%% Acceptor supervisor will call this function, to create acceptor.
+%% Supervisor of the Acceptor (acceptor_sup) will call this function, to create acceptor.
 %%
 %% @spec start_link() -> {ok, Pid} | ignore | {error, Error}
 %% @end
@@ -88,16 +86,18 @@ stop(APid) ->
 
 
 %%%===================================================================
-%%% gen_event callbacks
+%%% gen_server callbacks
 %%%===================================================================
 
 %%--------------------------------------------------------------------
 %% @private
 %% @doc
-%% Whenever a new event handler is added to an event manager,
-%% this function is called to initialize the event handler.
+%% Initializes the server (acceptor process)
 %%
-%% @spec init(Args) -> {ok, State}
+%% @spec init(Args) -> {ok, State} |
+%%                     {ok, State, Timeout} |
+%%                     ignore |
+%%                     {stop, Reason}
 %% @end
 %%--------------------------------------------------------------------
 init([LSock]) ->   
@@ -139,14 +139,11 @@ handle_call(_Request, _From, State) ->
 %%--------------------------------------------------------------------
 %% @private
 %% @doc
-%% This function is called for each installed event handler when
-%% an event manager receives any other message than an event or a
-%% synchronous request (or a system message).
+%% Handling all non call/cast messages
 %%
-%% @spec handle_info(Info, State) ->
-%%                         {ok, State} |
-%%                         {swap_handler, Args1, State1, Mod2, Args2} |
-%%                         remove_handler
+%% @spec handle_info(Info, State) -> {noreply, State} |
+%%                                   {noreply, State, Timeout} |
+%%                                   {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
 handle_info(timeout, #state{lsock = LSock} = State) ->
@@ -157,10 +154,10 @@ handle_info(timeout, #state{lsock = LSock} = State) ->
     %% create a new acceptor
     create(LSock),	
     {noreply,State#state{asock = ASock}};
-handle_info({tcp, ASock, Msg}, #state{apid = APid, status = Status, clientID = ClientID} = State) ->
+handle_info({tcp, ASock, Msg}, #state{apid = APid, status = Status} = State) ->
     %% create a new router and send the message to it,
     %% along with the status and the ID of the client.
-    router:create(APid, Status, ClientID, Msg),
+    router:create(APid, Status, Msg),
     %% make ASock ready to accept next messages
     inet:setopts(ASock, [{active, once}]),
     {noreply, State};
@@ -173,9 +170,10 @@ handle_info(_Info, State) ->
 %%--------------------------------------------------------------------
 %% @private
 %% @doc
-%% Whenever an event handler is deleted from an event manager, this
-%% function is called. It should be the opposite of Module:init/1 and
-%% do any necessary cleaning up.
+%% This function is called by a gen_server when it is about to
+%% terminate. It should be the opposite of Module:init/1 and do any
+%% necessary cleaning up. When it returns, the gen_server terminates
+%% with Reason. The return value is ignored.
 %%
 %% @spec terminate(Reason, State) -> void()
 %% @end

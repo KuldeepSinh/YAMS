@@ -74,7 +74,7 @@ init([]) ->
     SupFlags = {RestartStrategy, MaxRestarts, MaxSecondsBetweenRestarts},
 
     Restart = temporary,
-    Shutdown = 2000,
+    Shutdown = brutal_kill,
     Type = worker,
 
     Acceptor = {acceptor, {acceptor, start_link, []}, Restart, Shutdown, Type, [acceptor]},

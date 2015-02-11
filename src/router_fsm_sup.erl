@@ -16,22 +16,24 @@
 %%% @author  KuldeepSinh Chauhan
 %%% @copyright (C) 2013, 
 %%% @doc
-%%%     Suprevises listener process.
+%%%     This module will supervise message routers.
 %%% @end
-%%% Created : 11 Aug 2013 by  KuldeepSinh Chauhan
+%%% Created : 10 Aug 2013 by  KuldeepSinh Chauhan
 %%%-------------------------------------------------------------------
--module(listener_sup).
+-module(router_fsm_sup).
 
 -behaviour(supervisor).
 
 %% API
--export([start_link/0]).
+-export([
+	 start_link/0, 
+	 start_child/4
+	]).
 
 %% Supervisor callbacks
 -export([init/1]).
 
 -define(SERVER, ?MODULE).
-
 %%%===================================================================
 %%% API functions
 %%%===================================================================
@@ -45,6 +47,9 @@
 %%--------------------------------------------------------------------
 start_link() ->
     supervisor:start_link({local, ?SERVER}, ?MODULE, []).
+
+start_child(APid, Status, ClientID, Msg) ->
+    supervisor:start_child(?SERVER, [APid, Status, ClientID, Msg]).
 
 %%%===================================================================
 %%% Supervisor callbacks
@@ -64,18 +69,18 @@ start_link() ->
 %% @end
 %%--------------------------------------------------------------------
 init([]) ->
-    RestartStrategy = one_for_one,
+    RestartStrategy = simple_one_for_one,
     MaxRestarts = 0,
     MaxSecondsBetweenRestarts = 1,
 
     SupFlags = {RestartStrategy, MaxRestarts, MaxSecondsBetweenRestarts},
-    Restart = permanent,
-    Shutdown = brutal_kill,
+
+    Restart = temporary,
+    Shutdown = 2000,
     Type = worker,
 
-    Listener = {listener, {listener, start_link, []}, Restart, Shutdown, Type, [listener]},
-
-    {ok, {SupFlags, [Listener]}}.
+    Router_FSM = {router_fsm, {router_fsm, start_link, []}, Restart, Shutdown, Type, [router_fsm]},
+    {ok, {SupFlags, [Router_FSM]}}.
 
 %%%===================================================================
 %%% Internal functions

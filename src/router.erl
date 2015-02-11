@@ -26,8 +26,8 @@
 
 %% API
 -export([
-	 start_link/4,
-	 create/4,
+	 start_link/3,
+	 create/3,
 	 stop/1
 	]).
 
@@ -47,9 +47,8 @@
 -record(state, 
 	{
 	  apid, %% PID of associated Acceptor.
-	  clientID, %% Client ID of associated Client.
 	  msg, %% Message received from the acceptor.
-	  self, %% PID of self (RPid).
+	  rpid, %% PID of self (RPid).
 	  status %% status of the acceptor (connected/undefined).
 	}
        ).
@@ -57,8 +56,8 @@
 %%%===================================================================
 %%% API
 %%%===================================================================
-create(APid, Status, ClientID, Msg) ->
-    router_sup:start_child(APid, Status, ClientID, Msg).
+create(APid, Status, Msg) ->
+    router_sup:start_child(APid, Status, Msg).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -67,8 +66,8 @@ create(APid, Status, ClientID, Msg) ->
 %% @spec start_link() -> {ok, Pid} | ignore | {error, Error}
 %% @end
 %%--------------------------------------------------------------------
-start_link(APid, Status, ClientID, Msg) ->
-    gen_server:start_link(?MODULE, [APid, Status, ClientID, Msg], []).
+start_link(APid, Status, Msg) ->
+    gen_server:start_link(?MODULE, [APid, Status, Msg], []).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -97,8 +96,8 @@ stop(RPid) ->
 %%                     {stop, Reason}
 %% @end
 %%--------------------------------------------------------------------
-init([APid, Status, ClientID, Msg]) ->
-    {ok, #state{apid = APid, status = Status, clientID = ClientID, msg = Msg, self = self()}, 0}.
+init([APid, Status, Msg]) ->
+    {ok, #state{apid = APid, status = Status, msg = Msg, rpid = self()}, 0}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -143,7 +142,7 @@ handle_cast(_Msg, State) ->
 %%                                   {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
-handle_info(timeout, #state{apid = APid, status = Status, clientID = ClientID, msg = Msg, self = RPid} = State) ->
+handle_info(timeout, #state{apid = APid, status = Status, msg = Msg, rpid = RPid} = State) ->
     %{ok, _Type} = route(APid, Status, ClientID, Msg),
     stop(RPid),
     {noreply, State};
