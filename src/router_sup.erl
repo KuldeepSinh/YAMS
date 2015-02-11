@@ -13,75 +13,57 @@
 %% limitations under the License.
 
 %%%-------------------------------------------------------------------
-%%% @author  KuldeepSinh Chauhan
-%%% @copyright (C) 2013, 
-%%% @doc
-%%%     This module will supervise message routers.
+%%% @author KuldeepSinh Chauhan
+%%% @copyright (C) 2013
+%%% @doc yams_sup is the root supervisor. 
+%%%      It starts tcp_sup for handling communication over TCP.
+%%%      It also starts mqtt_sup implementation of the protocol.
 %%% @end
-%%% Created : 10 Aug 2013 by  KuldeepSinh Chauhan
+%%% Created : 11 Feb 2015 by KuldeepSinh Chauhan
 %%%-------------------------------------------------------------------
--module(router_sup).
 
+
+-module(router_sup).
+%% router_sup implements supervisor interface.
 -behaviour(supervisor).
 
 %% API
--export([
-	 start_link/0, 
-	 start_child/3
-	]).
+-export([start_link/0]).
 
 %% Supervisor callbacks
 -export([init/1]).
 
--define(SERVER, ?MODULE).
-%%%===================================================================
-%%% API functions
-%%%===================================================================
+%% ===================================================================
+%% API functions
+%% ===================================================================
 
-%%--------------------------------------------------------------------
-%% @doc
-%% Starts the supervisor
-%%
-%% @spec start_link() -> {ok, Pid} | ignore | {error, Error}
-%% @end
-%%--------------------------------------------------------------------
 start_link() ->
-    supervisor:start_link({local, ?SERVER}, ?MODULE, []).
+    supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
-start_child(APid, Status, Msg) ->
-    supervisor:start_child(?SERVER, [APid, Status, Msg]).
+%% ===================================================================
+%% Supervisor callbacks
+%% ===================================================================
 
-%%%===================================================================
-%%% Supervisor callbacks
-%%%===================================================================
-
-%%--------------------------------------------------------------------
-%% @private
-%% @doc
-%% Whenever a supervisor is started using supervisor:start_link/[2,3],
-%% this function is called by the new process to find out about
-%% restart strategy, maximum restart frequency and child
-%% specifications.
-%%
-%% @spec init(Args) -> {ok, {SupFlags, [ChildSpec]}} |
-%%                     ignore |
-%%                     {error, Reason}
-%% @end
-%%--------------------------------------------------------------------
 init([]) ->
-    RestartStrategy = simple_one_for_one,
+    RestartStrategy = one_for_one,
     MaxRestarts = 0,
     MaxSecondsBetweenRestarts = 1,
-
     SupFlags = {RestartStrategy, MaxRestarts, MaxSecondsBetweenRestarts},
 
-    Restart = temporary,
-    Shutdown = 2000,
-    Type = worker,
+    Restart = permanent,
+    Shutdown = infinity,
+    Type = supervisor,
 
-    Router = {router, {router, start_link, []}, Restart, Shutdown, Type, [router]},
-    {ok, {SupFlags, [Router]}}.
+    %Suprevisor for communication over router gen_server 
+    Router_Svr_Sup = {router_svr_sup, {router_svr_sup, start_link, []}, Restart, Shutdown, Type, [router_svr_sup]},
+    %Supervisor for implementing router gen_fsm
+    Router_Fsm_Sup = {router_fsm_sup, {router_fsm_sup, start_link, []}, Restart, Shutdown, Type, [router_fsm_sup]},
 
-%%%===================================================================
-%%% Internal functions
-%%%===================================================================
+    %%In the following list, the order of given supervisors is very important.
+    %%Starting from the lowest level, supervisors will be started upto the highest level, 
+    %%ensuring, lower level Supervisor is ready before it is used by the higher level.
+    {ok, {SupFlags, [Router_Fsm_Sup, Router_Svr_Sup]}}.
+
+%% ===================================================================
+%% Non-API functions
+%% ===================================================================

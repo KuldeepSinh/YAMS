@@ -20,14 +20,14 @@
 %%% @end
 %%% Created : 10 Aug 2013 by  KuldeepSinh Chauhan
 %%%-------------------------------------------------------------------
--module(router_fsm_sup).
+-module(router_svr_sup).
 
 -behaviour(supervisor).
 
 %% API
 -export([
 	 start_link/0, 
-	 start_child/0
+	 start_child/2
 	]).
 
 %% Supervisor callbacks
@@ -48,8 +48,8 @@
 start_link() ->
     supervisor:start_link({local, ?SERVER}, ?MODULE, []).
 
-start_child() ->
-    supervisor:start_child(?SERVER, []).
+start_child(APid, Msg) ->
+    supervisor:start_child(?SERVER, [APid, Msg]).
 
 %%%===================================================================
 %%% Supervisor callbacks
@@ -79,8 +79,8 @@ init([]) ->
     Shutdown = 2000,
     Type = worker,
 
-    Router_FSM = {router_fsm, {router_fsm, start_link, []}, Restart, Shutdown, Type, [router_fsm]},
-    {ok, {SupFlags, [Router_FSM]}}.
+    Router_Svr = {router_svr, {router_svr, start_link, []}, Restart, Shutdown, Type, [router_svr]},
+    {ok, {SupFlags, [Router_Svr]}}.
 
 %%%===================================================================
 %%% Internal functions

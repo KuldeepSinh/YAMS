@@ -12,7 +12,9 @@
 
 %% API
 -export([
-	 start_link/0
+	 create/0, % Send request to router_fsm_sup to create router
+	 start_link/0,
+	 send_event/2 % Send event
 	]).
 
 %% gen_fsm callbacks
@@ -33,17 +35,15 @@
 	 code_change/4
 	]).
 
-%% API : Event raiser
--export([raise_event/2]).
-
 -define(SERVER, ?MODULE).
--define(MAX_LENGTH, 268435455).
+-define(MAX_LENGTH, 268435455). % Maximum allowed length of the topic.
 
 -record(state, 
 	{
 	  apid, % PIDof associated Acceptor.
-	  pkt_received, % Packet received from the acceptor
 	  pkt_type, % Packet type determined by calling validate_fb()
+	  fb, % First byte
+	  pkt, % Packet
 	  rfsmpid % PID of self (router_FSM)  
 	}
        ).
@@ -51,15 +51,17 @@
 %%%===================================================================
 %%% API
 %%%===================================================================
-raise_event(Pid, {validate_fb, Pkt}) ->
-    gen_fsm:sync_send_event(Pid, {validate_fb, Pkt});
-raise_event(Pid, {validate_rl, Pkt}) ->
-    gen_fsm:sync_send_event(Pid, {validate_rl, Pkt});
-raise_event(Pid, {route_pkt, Pkt}) ->
-    gen_fsm:sync_send_event(Pid, {route_pkt, Pkt});
-raise_event(Pid, stop) ->
-    gen_fsm:send_all_state_event(Pid, stop).
 
+%% Send request to router_fsm_sup to create router
+create() ->
+    router_fsm_sup:start_child().
+
+send_event(RFSMPid, {validate_fb, APid, Pkt}) ->
+    gen_fsm:sync_send_event(RFSMPid, {validate_fb, APid, Pkt});
+send_event(RFSMPid, {validate_rl}) ->
+    gen_fsm:sync_send_event(RFSMPid, {validate_rl});
+send_event(RFSMPid, {route_pkt}) ->
+    gen_fsm:sync_send_event(RFSMPid, {route_pkt}).
     
 %%--------------------------------------------------------------------
 %% @doc
@@ -91,7 +93,7 @@ start_link() ->
 %% @end
 %%--------------------------------------------------------------------
 init([]) ->
-    {ok, state_name, #state{}}.
+    {ok, ready, #state{}}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -112,13 +114,8 @@ ready(_Event, State) ->
     {next_state, ready, State}.
 valid_fb(_Event, State) ->
     {next_state, valid_fb, State}.
-%% invalid_fb(_Event, State) ->
-%%     {next_state, invalid_fb, State}.
 valid_rl(_Event, State) ->
     {next_state, valid_rl, State}.
-%% invalid_rl(_Event, State) ->
-%%     {next_state, invalid_rl, State}.
-
 
 %%--------------------------------------------------------------------
 %% @private
@@ -138,21 +135,44 @@ valid_rl(_Event, State) ->
 %%                   {stop, Reason, Reply, NewState}
 %% @end
 %%--------------------------------------------------------------------
-ready({validate_fb, Pkt}, _From, State) ->
+
+%% When FSM is in ready state, validate its first byte.
+%% If value of First byte is valid, move FSM to next state : valid_fb
+%% If value of First byte is invalid, stop fsm
+ready({validate_fb, APid, Pkt}, _From, State) ->
+    {IsValid, Pkt_type, Rest} = validate_first_byte(Pkt),
     %% if valid change state else stop fsm
-    Reply = validate_first_byte(PKT),
-    {reply, Reply, valid_fb, State}.
+    case (IsValid =:= ok) of
+	true ->
+	    <<FB:8, _Rest/binary>> = Pkt,
+	    NewState = State#state{apid = APid, pkt_type = Pkt_type, fb = FB, pkt = Rest},
+	    {reply, valid, valid_fb, NewState};
+	_  ->
+	    {stop, normal, {error, invalid_fb}, State}
+    end.
 
-
-valid_fb({validate_rl, Rest}, _From, State) ->
+%% When FSM is in valid_fb state, validate its remaining length field.
+%% If value of Remaining Length is valid, move FSM to next state : valid_rl
+%% If value of Remaining Length is invalid, stop fsm
+valid_fb({validate_rl}, _From, State) ->
+    #state{pkt = Rest} = State,
+    {IsValid, NewRest} = validate_remaining_length(Rest),
     %% if valid change state else stop fsm
-    Reply = validate_remaining_length(Rest),
-    {reply, Reply, valid_rl, State}.
+    case (IsValid =:= ok) of
+	true ->
+	    NewState = State#state{pkt = NewRest},
+	    {reply, valid, valid_rl, NewState};
+	_  ->
+	    {stop, normal, {error, invalid_rl}, State}
+    end.
 
-valid_rl({route_pkt, Pkt}, _From, State) ->
+%% When FSM is in valid_rl state, route packet to appropriate packet handler based on its packet type.
+%% Then close FSM.
+valid_rl({route_pkt}, _From, State) ->
+    #state{apid = APid, pkt_type = Pkt_Type, fb = FB, pkt = Rest} = State,
     %% route packet and stop fsm
-    Reply = route(Pkt_Type, Apid, Rest),
-    {stop, normal, {ok, pkt_routed}, State}.
+    Reply = route(Pkt_Type, APid, FB, Rest),
+    {stop, normal, Reply, State}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -186,9 +206,9 @@ handle_event(stop, _StateName, State) ->
 %%                   {stop, Reason, Reply, NewState}
 %% @end
 %%--------------------------------------------------------------------
-handle_sync_event(_Event, _From, StateName, State) ->
+handle_sync_event(stop, _From, _StateName, State) ->
     Reply = ok,
-    {reply, Reply, StateName, State}.
+    {stop, normal, Reply, State}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -266,7 +286,7 @@ validate_first_byte(<<13:4, 0:1, 0:2, 0:1, Rest/binary>>) ->
 validate_first_byte(<<14:4, 0:1, 0:2, 0:1, Rest/binary>>) -> 
     {ok, disconnect, Rest};
 validate_first_byte(_) -> 
-    {error, invalid_fb}.
+    {error, invalid_fb, <<>>}.
 
 %%===================================================================
 %% Decode remaining length (RestBin does not contain FirstByte)
@@ -294,6 +314,8 @@ validate_remaining_length(_, _, _) ->
     {error, invalid_rl}.
 
 %%===================================================================
-route(connect, Apid, Rest) ->
-    connect:create(Apid, Rest),
-    {ok, connect}.
+route(connect, APid, _FB, Rest) ->
+    connect:create(APid, Rest),
+    {ok, connect};
+route(_Invalid_Type, _APid, _FB, _Rest) ->
+    {error, invalid_type}.

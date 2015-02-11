@@ -20,14 +20,14 @@
 %%% @end
 %%% Created : 15 Aug 2013 by KuldeepSinh Chauhan
 %%%-------------------------------------------------------------------
--module(router).
+-module(router_svr).
 
 -behaviour(gen_server).
 
 %% API
 -export([
-	 start_link/3,
-	 create/3,
+	 start_link/2,
+	 create/2,
 	 stop/1
 	]).
 
@@ -48,16 +48,15 @@
 	{
 	  apid, %% PID of associated Acceptor.
 	  msg, %% Message received from the acceptor.
-	  rpid, %% PID of self (RPid).
-	  status %% status of the acceptor (connected/undefined).
+	  rsvrpid %% PID of self (RPid).
 	}
        ).
 
 %%%===================================================================
 %%% API
 %%%===================================================================
-create(APid, Status, Msg) ->
-    router_sup:start_child(APid, Status, Msg).
+create(APid, Msg) ->
+    router_svr_sup:start_child(APid, Msg).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -66,8 +65,8 @@ create(APid, Status, Msg) ->
 %% @spec start_link() -> {ok, Pid} | ignore | {error, Error}
 %% @end
 %%--------------------------------------------------------------------
-start_link(APid, Status, Msg) ->
-    gen_server:start_link(?MODULE, [APid, Status, Msg], []).
+start_link(APid, Msg) ->
+    gen_server:start_link(?MODULE, [APid, Msg], []).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -77,8 +76,8 @@ start_link(APid, Status, Msg) ->
 %% @end
 %%--------------------------------------------------------------------
 
-stop(RPid) ->
-    gen_server:cast(RPid, stop).
+stop(RSvrPid) ->
+    gen_server:cast(RSvrPid, stop).
 
 
 %%%===================================================================
@@ -96,8 +95,8 @@ stop(RPid) ->
 %%                     {stop, Reason}
 %% @end
 %%--------------------------------------------------------------------
-init([APid, Status, Msg]) ->
-    {ok, #state{apid = APid, status = Status, msg = Msg, rpid = self()}, 0}.
+init([APid, Msg]) ->
+    {ok, #state{apid = APid, msg = Msg, rsvrpid = self()}, 0}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -142,12 +141,9 @@ handle_cast(_Msg, State) ->
 %%                                   {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
-handle_info(timeout, #state{apid = APid, status = Status, msg = Msg, rpid = RPid} = State) ->
-    %{ok, _Type} = route(APid, Status, ClientID, Msg),
-    stop(RPid),
+handle_info(timeout, #state{apid = APid, msg = Msg, rsvrpid = RSvrPid} = State) ->
+    call_router_fsm(APid, RSvrPid, Msg),
     {noreply, State};
-%% handle_info(timeout, _State) ->
-%%     stop(self());
 handle_info(_Info, State) ->
     {noreply, State}.
 
@@ -179,7 +175,21 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 %%% Internal functions
 %% %%%===================================================================
-
+call_router_fsm(APid, RSvrPid, Pkt) ->
+    {ok, RFSMPid} = router_fsm:create(),
+    case router_fsm:send_event(RFSMPid, {validate_fb, APid, Pkt}) of
+	valid ->
+	    case router_fsm:send_event(RFSMPid, {validate_rl}) of
+		valid ->
+		    router_fsm:send_event(RFSMPid, {route_pkt}),
+		    stop(RSvrPid);
+		_ ->     
+		    stop(RSvrPid)
+	    end;
+	_ ->
+	    stop(RSvrPid)
+    end.
+      
 %% %% Copyright 2013 KuldeepSinh Chauhan
 %% %%
 %% %% Licensed under the Apache License, Version 2.0 (the "License");
