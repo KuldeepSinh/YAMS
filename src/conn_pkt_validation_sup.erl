@@ -20,12 +20,14 @@
 %%% @end
 %%% Created : 10 Aug 2013 by  KuldeepSinh Chauhan
 %%%-------------------------------------------------------------------
--module(connect_sup).
+-module(conn_pkt_validation_sup).
 
 -behaviour(supervisor).
 
 %% API
--export([start_link/0]).
+-export([
+	 start_link/0
+	]).
 
 %% Supervisor callbacks
 -export([init/1]).
@@ -82,13 +84,9 @@ init([]) ->
     Type = supervisor,
 
 
-    %% %Suprevisor for connect genserver supervisor.
-    ConnSvrSup = {conn_svr_sup, {conn_svr_sup, start_link, []}, Restart, Shutdown, Type, [conn_svr_sup]},
-    %Suprevisor for connect packet validation FSMs supervisor.
-    ConnPktValidationSup = {conn_pkt_validation_sup, {conn_pkt_validation_sup, start_link, []}, Restart, Shutdown, Type, [conn_pkt_validation_sup]},
-    {ok, {SupFlags, [ConnPktValidationSup, ConnSvrSup]}}.
-
-
+    ConnVarHeadFsmSup = {conn_var_head_fsm_sup, {conn_var_head_fsm_sup, start_link, []}, Restart, Shutdown, Type, [conn_var_head_fsm_sup]},
+    ConnPayloadFsmSup = {conn_payload_fsm_sup,  {conn_payload_fsm_sup, start_link, []}, Restart, Shutdown, Type, [conn_payload_fsm_sup]},
+    {ok, {SupFlags, [ConnPayloadFsmSup, ConnVarHeadFsmSup]}}.
 
 %%%===================================================================
 %%% Internal functions

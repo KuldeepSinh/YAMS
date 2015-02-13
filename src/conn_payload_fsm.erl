@@ -20,7 +20,7 @@
 %%% @end
 %%% Created : 17 Aug 2013 by  KuldeepSinh Chauhan
 %%%-------------------------------------------------------------------
--module(connect).
+-module(conn_payload_fsm).
 
 -behaviour(gen_server).
 

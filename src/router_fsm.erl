@@ -315,7 +315,7 @@ validate_remaining_length(_, _, _) ->
 
 %%===================================================================
 route(connect, APid, _FB, Rest) ->
-    connect:create(APid, Rest),
+    conn_svr:create(APid, Rest),
     {ok, connect};
 route(_Invalid_Type, _APid, _FB, _Rest) ->
     {error, invalid_type}.

@@ -13,17 +13,16 @@
 %% limitations under the License.
 
 %%%-------------------------------------------------------------------
-%%% @author KuldeepSinh Chauhan
-%%% @copyright (C) 2013
-%%% @doc yams_sup is the root supervisor. 
-%%%      It starts tcp_sup for handling communication over TCP.
-%%%      It also starts mqtt_sup implementation of the protocol.
+%%% @author  KuldeepSinh Chauhan
+%%% @copyright (C) 2013, 
+%%% @doc
+%%%     tcp_sup : module to listen and accept messages from/to clients connected over TCP.
 %%% @end
-%%% Created : Aug 2013 by KuldeepSinh Chauhan
-%%% Modified : Feb 2015 by KuldeepSinh Chauhan
+%%% Created : 10 Aug 2013 by KuldeepSinh Chauhan
+%%% Updated : 05 Feb 2015 by KuldeepSinh Chauhan
 %%%-------------------------------------------------------------------
--module(yams_sup).
-%% yams_sup implements supervisor interface.
+-module(shared_services_sup).
+
 -behaviour(supervisor).
 
 %% API
@@ -53,15 +52,13 @@ init([]) ->
     Shutdown = infinity,
     Type = supervisor,
 
-    %Suprevisor for communication over TCP 
-    TCPSup = {tcp_sup, {tcp_sup, start_link, []}, Restart, Shutdown, Type, [tcp_sup]},
-    %Supervisor for implementing MQTT protocol
-    MQTTSup = {mqtt_sup, {mqtt_sup, start_link, []}, Restart, Shutdown, Type, [mqtt_sup]},
+    %Supervisor for Packet router
+    RouterSup = {router_sup, {router_sup, start_link, []}, Restart, Shutdown, Type, [router_sup]},
 
     %%In the following list, the order of given supervisors is very important.
     %%Starting from the lowest level, supervisors will be started upto the highest level, 
-    %%ensuring, lower level Supervisor is ready before it is used by the higher level.
-    {ok, {SupFlags, [MQTTSup, TCPSup]}}.
+    %%ensuring, lower level Supervisor is started before it is used by the higher level.
+    {ok, {SupFlags, [RouterSup]}}.
 
 %% ===================================================================
 %% Non-API functions
