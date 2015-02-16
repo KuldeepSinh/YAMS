@@ -24,9 +24,7 @@
 	 %% states
 	 ready/2, ready/3, 
 	 valid_fb/2, valid_fb/3,
-	 %%invalid_fb/2, invalid_fb/3,
 	 valid_rl/2, valid_rl/3,
-	 %%invalid_rl/2, invalid_rl/3,
 	 
 	 handle_event/3,
 	 handle_sync_event/4, 

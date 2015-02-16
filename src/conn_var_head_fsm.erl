@@ -1,128 +1,231 @@
-%% Copyright 2013 KuldeepSinh Chauhan
-%%
-%% Licensed under the Apache License, Version 2.0 (the "License");
-%% you may not use this file except in compliance with the License.
-%% You may obtain a copy of the License at
-%%
-%% http://www.apache.org/licenses/LICENSE-2.0
-%%
-%% Unless required by applicable law or agreed to in writing, software
-%% distributed under the License is distributed on an "AS IS" BASIS,
-%% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-%% See the License for the specific language governing permissions and
-%% limitations under the License.
+%% %% Copyright 2013, 2014, 2015 KuldeepSinh Chauhan
+%% %%
+%% %% Licensed under the Apache License, Version 2.0 (the "License");
+%% %% you may not use this file except in compliance with the License.
+%% %% You may obtain a copy of the License at
+%% %%
+%% %% http://www.apache.org/licenses/LICENSE-2.0
+%% %%
+%% %% Unless required by applicable law or agreed to in writing, software
+%% %% distributed under the License is distributed on an "AS IS" BASIS,
+%% %% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+%% %% See the License for the specific language governing permissions and
+%% %% limitations under the License.
 
-%%%-------------------------------------------------------------------
-%%% @author  KuldeepSinh Chauhan
-%%% @copyright (C) 2013, 
-%%% @doc
-%%%
-%%% @end
-%%% Created : 17 Aug 2013 by  KuldeepSinh Chauhan
-%%%-------------------------------------------------------------------
+%% %%%-------------------------------------------------------------------
+%% %%% @author  KuldeepSinh Chauhan
+%% %%% @copyright (C) 2013, 2014, 2015 
+%% %%% @doc
+%% %%%
+%% %%% @end
+%% %%% Created : 15 Feb 2015 by  KuldeepSinh Chauhan
+%% %%%-------------------------------------------------------------------
 -module(conn_var_head_fsm).
 
--behaviour(gen_server).
+-behaviour(gen_fsm).
 
 %% API
--export([start_link/0]).
+-export([
+	 create/0, % Send request to the fsm to validate variable header of the packet.
+	 start_link/0,
+	 send_event/2 % Send event
+	]).
 
-%% gen_server callbacks
--export([init/1, handle_call/3, handle_cast/2, handle_info/2,
-	 terminate/2, code_change/3]).
+%% gen_fsm callbacks
+-export([
+	 init/1, 
+	 %% Possible States
+	 ready/2, ready/3, 
+	 valid_proto_name/2, valid_proto_name/3,
+	 valid_proto_level/2, valid_proto_level/3,
+	 valid_conn_flags/2, valid_conn_flags/3,
+	 
+	 handle_event/3,
+	 handle_sync_event/4, 
+	 handle_info/3, 
+	 terminate/3, 
+	 code_change/4
+	]).
 
 -define(SERVER, ?MODULE).
 
--record(state, {}).
+-record(flags, {user, password, will_retain, will_qos, will, clean_session, reserved}).
+-record(var_head, {flags, kat}).
+-record(state, {var_head, rest}).
 
 %%%===================================================================
 %%% API
 %%%===================================================================
+%% Send request to router_fsm_sup to create router
+create() ->
+    conn_var_head_fsm_sup:start_child().
+
+send_event(VarHeadFSMPid, {validate_proto_name, Pkt}) ->
+    gen_fsm:sync_send_event(VarHeadFSMPid, {validate_proto_name, Pkt});
+send_event(VarHeadFSMPid, {validate_proto_level}) ->
+    gen_fsm:sync_send_event(VarHeadFSMPid, {validate_proto_level});
+send_event(VarHeadFSMPid, {validate_conn_flags}) ->
+    gen_fsm:sync_send_event(VarHeadFSMPid, {validate_conn_flags});
+send_event(VarHeadFSMPid, {extract_kat}) ->
+    gen_fsm:sync_send_event(VarHeadFSMPid, {extract_kat}).
+
 
 %%--------------------------------------------------------------------
 %% @doc
-%% Starts the server
+%% Creates a gen_fsm process which calls Module:init/1 to
+%% initialize. To ensure a synchronized start-up procedure, this
+%% function does not return until Module:init/1 has returned.
 %%
 %% @spec start_link() -> {ok, Pid} | ignore | {error, Error}
 %% @end
 %%--------------------------------------------------------------------
 start_link() ->
-    gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
+    gen_fsm:start_link({local, ?SERVER}, ?MODULE, [], []).
 
 %%%===================================================================
-%%% gen_server callbacks
+%%% gen_fsm callbacks
 %%%===================================================================
 
 %%--------------------------------------------------------------------
 %% @private
 %% @doc
-%% Initializes the server
+%% Whenever a gen_fsm is started using gen_fsm:start/[3,4] or
+%% gen_fsm:start_link/[3,4], this function is called by the new
+%% process to initialize.
 %%
-%% @spec init(Args) -> {ok, State} |
-%%                     {ok, State, Timeout} |
+%% @spec init(Args) -> {ok, StateName, State} |
+%%                     {ok, StateName, State, Timeout} |
 %%                     ignore |
-%%                     {stop, Reason}
+%%                     {stop, StopReason}
 %% @end
 %%--------------------------------------------------------------------
 init([]) ->
-    {ok, #state{}}.
+    {ok, ready, #state{}}.
 
 %%--------------------------------------------------------------------
 %% @private
 %% @doc
-%% Handling call messages
+%% There should be one instance of this function for each possible
+%% state name. Whenever a gen_fsm receives an event sent using
+%% gen_fsm:send_event/2, the instance of this function with the same
+%% name as the current state name StateName is called to handle
+%% the event. It is also called if a timeout occurs.
 %%
-%% @spec handle_call(Request, From, State) ->
-%%                                   {reply, Reply, State} |
-%%                                   {reply, Reply, State, Timeout} |
-%%                                   {noreply, State} |
-%%                                   {noreply, State, Timeout} |
-%%                                   {stop, Reason, Reply, State} |
-%%                                   {stop, Reason, State}
+%% @spec state_name(Event, State) ->
+%%                   {next_state, NextStateName, NextState} |
+%%                   {next_state, NextStateName, NextState, Timeout} |
+%%                   {stop, Reason, NewState}
 %% @end
 %%--------------------------------------------------------------------
-handle_call(_Request, _From, State) ->
+ready(_Event, State) ->
+    {next_state, ready, State}. 
+valid_proto_name(_Event, State) ->
+    {next_state, valid_proto_name, State}. 
+valid_proto_level(_Event, State) ->
+    {next_state, valid_proto_level, State}. 
+valid_conn_flags(valid_conn_flags, State) ->
+    {next_state, valid_conn_flags, State}. 
+
+%%--------------------------------------------------------------------
+%% @private
+%% @doc
+%% There should be one instance of this function for each possible
+%% state name. Whenever a gen_fsm receives an event sent using
+%% gen_fsm:sync_send_event/[2,3], the instance of this function with
+%% the same name as the current state name StateName is called to
+%% handle the event.
+%%
+%% @spec state_name(Event, From, State) ->
+%%                   {next_state, NextStateName, NextState} |
+%%                   {next_state, NextStateName, NextState, Timeout} |
+%%                   {reply, Reply, NextStateName, NextState} |
+%%                   {reply, Reply, NextStateName, NextState, Timeout} |
+%%                   {stop, Reason, NewState} |
+%%                   {stop, Reason, Reply, NewState}
+%% @end
+%%--------------------------------------------------------------------
+ready({validate_proto_name, <<0:8, 4:8, "MQTT", Rest/binary>>}, _From, State) ->
+    NewState = State#state{rest=Rest},
+    {reply, valid, valid_proto_name, NewState};
+ready(_, _, State) ->
+    {stop, normal, {error, invalid_proto_name}, State}.
+
+valid_proto_name({validate_proto_level}, _From, #state{var_head = _, rest = <<4:8, Rest/binary>>} = State) ->
+    NewState = State#state{rest=Rest},
+    {reply, valid, valid_proto_level, NewState};
+valid_proto_name(_, _, State) ->
+    {stop, normal, {error, invalid_proto_level}, State}.
+
+valid_proto_level({validate_conn_flags}, _From, State) ->
+    {reply, valid, valid_conn_flags, State}.
+valid_conn_flags({extract_kat}, _From, State) ->
     Reply = ok,
-    {reply, Reply, State}.
+    {stop, normal, Reply, State}.
 
 %%--------------------------------------------------------------------
 %% @private
 %% @doc
-%% Handling cast messages
+%% Whenever a gen_fsm receives an event sent using
+%% gen_fsm:send_all_state_event/2, this function is called to handle
+%% the event.
 %%
-%% @spec handle_cast(Msg, State) -> {noreply, State} |
-%%                                  {noreply, State, Timeout} |
-%%                                  {stop, Reason, State}
+%% @spec handle_event(Event, StateName, State) ->
+%%                   {next_state, NextStateName, NextState} |
+%%                   {next_state, NextStateName, NextState, Timeout} |
+%%                   {stop, Reason, NewState}
 %% @end
 %%--------------------------------------------------------------------
-handle_cast(_Msg, State) ->
-    {noreply, State}.
+handle_event(stop, _StateName, State) ->
+    {stop, normal, State}.
 
 %%--------------------------------------------------------------------
 %% @private
 %% @doc
-%% Handling all non call/cast messages
+%% Whenever a gen_fsm receives an event sent using
+%% gen_fsm:sync_send_all_state_event/[2,3], this function is called
+%% to handle the event.
 %%
-%% @spec handle_info(Info, State) -> {noreply, State} |
-%%                                   {noreply, State, Timeout} |
-%%                                   {stop, Reason, State}
+%% @spec handle_sync_event(Event, From, StateName, State) ->
+%%                   {next_state, NextStateName, NextState} |
+%%                   {next_state, NextStateName, NextState, Timeout} |
+%%                   {reply, Reply, NextStateName, NextState} |
+%%                   {reply, Reply, NextStateName, NextState, Timeout} |
+%%                   {stop, Reason, NewState} |
+%%                   {stop, Reason, Reply, NewState}
 %% @end
 %%--------------------------------------------------------------------
-handle_info(_Info, State) ->
-    {noreply, State}.
+handle_sync_event(stop, _From, StateName, State) ->
+    Reply = ok,
+    {stop, normal, StateName, State}.
 
 %%--------------------------------------------------------------------
 %% @private
 %% @doc
-%% This function is called by a gen_server when it is about to
+%% This function is called by a gen_fsm when it receives any
+%% message other than a synchronous or asynchronous event
+%% (or a system message).
+%%
+%% @spec handle_info(Info,StateName,State)->
+%%                   {next_state, NextStateName, NextState} |
+%%                   {next_state, NextStateName, NextState, Timeout} |
+%%                   {stop, Reason, NewState}
+%% @end
+%%--------------------------------------------------------------------
+handle_info(_Info, StateName, State) ->
+    {next_state, StateName, State}.
+
+%%--------------------------------------------------------------------
+%% @private
+%% @doc
+%% This function is called by a gen_fsm when it is about to
 %% terminate. It should be the opposite of Module:init/1 and do any
-%% necessary cleaning up. When it returns, the gen_server terminates
-%% with Reason. The return value is ignored.
+%% necessary cleaning up. When it returns, the gen_fsm terminates with
+%% Reason. The return value is ignored.
 %%
-%% @spec terminate(Reason, State) -> void()
+%% @spec terminate(Reason, StateName, State) -> void()
 %% @end
 %%--------------------------------------------------------------------
-terminate(_Reason, _State) ->
+terminate(_Reason, _StateName, _State) ->
     ok.
 
 %%--------------------------------------------------------------------
@@ -130,11 +233,12 @@ terminate(_Reason, _State) ->
 %% @doc
 %% Convert process state when code is changed
 %%
-%% @spec code_change(OldVsn, State, Extra) -> {ok, NewState}
+%% @spec code_change(OldVsn, StateName, State, Extra) ->
+%%                   {ok, StateName, NewState}
 %% @end
 %%--------------------------------------------------------------------
-code_change(_OldVsn, State, _Extra) ->
-    {ok, State}.
+code_change(_OldVsn, StateName, State, _Extra) ->
+    {ok, StateName, State}.
 
 %%%===================================================================
 %%% Internal functions
