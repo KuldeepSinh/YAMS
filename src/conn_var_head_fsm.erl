@@ -49,7 +49,7 @@
 
 -define(SERVER, ?MODULE).
 
--record(flags, {user, password, will_retain, will_qos, will, clean_session, reserved}).
+-record(flags, {user, password, will_retain, will_qos, will, clean_session}).
 -record(var_head, {flags, kat}).
 -record(state, {var_head, rest}).
 
@@ -144,23 +144,47 @@ valid_conn_flags(valid_conn_flags, State) ->
 %%                   {stop, Reason, Reply, NewState}
 %% @end
 %%--------------------------------------------------------------------
+
+%% Ready is the initial state of the FSM.
+%% In ready state the FSM should receive "validate_proto_name" event along with the Binary, containing var head and payload.
+%% In response to the event following function validates Protocol name.
 ready({validate_proto_name, <<0:8, 4:8, "MQTT", Rest/binary>>}, _From, State) ->
     NewState = State#state{rest=Rest},
     {reply, valid, valid_proto_name, NewState};
-ready(_, _, State) ->
+ready({validate_proto_name, _Binary}, _, State) ->
     {stop, normal, {error, invalid_proto_name}, State}.
 
+%% Once Protocol name is validated successfully, the next state of the FSM is - valid_proto_name.
+%% In valid_proto_name state the FSM should receive "validate_proto_level" event.
 valid_proto_name({validate_proto_level}, _From, #state{var_head = _, rest = <<4:8, Rest/binary>>} = State) ->
     NewState = State#state{rest=Rest},
     {reply, valid, valid_proto_level, NewState};
-valid_proto_name(_, _, State) ->
+valid_proto_name({validate_proto_level}, _, State) ->
     {stop, normal, {error, invalid_proto_level}, State}.
 
-valid_proto_level({validate_conn_flags}, _From, State) ->
-    {reply, valid, valid_conn_flags, State}.
-valid_conn_flags({extract_kat}, _From, State) ->
-    Reply = ok,
-    {stop, normal, Reply, State}.
+%% Once Protocol level is validated successfully, the next state of the FSM is - valid_proto_level.
+%% In valid_proto_level state the FSM should receive "validate_conn_flags" event.
+valid_proto_level({validate_conn_flags}, _From, #state{var_head = _, rest = <<Flags:7, 0:1, Rest/binary>>} = State) ->
+    {ReturnCode, Value} = validate_flags(Flags),
+    case (ReturnCode =:= ok) of 
+	true -> 
+	    VarHead = #var_head{flags = Value},
+	    NewState = #state{var_head = VarHead, rest=Rest},
+	    {reply, valid, valid_conn_flags, NewState};	    
+	_ ->
+	    {stop, normal, {ReturnCode, Value}, State}
+    end;
+valid_proto_level({validate_conn_flags}, _, State) ->
+	    {stop, normal, {error, invalid_reserved_flag}, State}.
+
+%% Once connect flags validated successfully, the next state of the FSM is - valid_conn_flags.
+%% In valid_conn_flags state the FSM should receive "extract_kat" event.
+valid_conn_flags({extract_kat}, _From, #state{var_head = VarHead, rest = <<KAT:16, Rest/binary>>} = State) ->
+    NewVarHead = VarHead#var_head{kat = KAT},
+    NewState = State#state{var_head = NewVarHead, rest = Rest},
+    {stop, normal, NewState, NewState};
+valid_conn_flags({extract_kat}, _, State) ->
+    {stop, normal, {error, invalid_kat_value}, State}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -194,9 +218,9 @@ handle_event(stop, _StateName, State) ->
 %%                   {stop, Reason, Reply, NewState}
 %% @end
 %%--------------------------------------------------------------------
-handle_sync_event(stop, _From, StateName, State) ->
+handle_sync_event(stop, _From, _StateName, State) ->
     Reply = ok,
-    {stop, normal, StateName, State}.
+    {stop, normal, Reply, State}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -243,6 +267,78 @@ code_change(_OldVsn, StateName, State, _Extra) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
+%% Extract each flag from the first 7 bits of the packet.
+extract_flags(<<User:1, Password:1, Will_retain:1, Will_qos:2, Will:1, Clean_session:1>>) ->
+    #flags{user=User, password=Password, will_retain=Will_retain, will_qos=Will_qos, will=Will, clean_session=Clean_session}.    
+
+%% Validate will_retain and will_qos flags - based on the value of the will flag.
+%% when will flag = 0, will_qos and will_retain flags must be zero.
+validate_wills(#flags{user=_, password=_, will_retain=0, will_qos=0, will=0, clean_session=_}) ->
+    ok;   
+%% when will flag = 1, will_qos must not be equal to 3
+validate_wills(#flags{user=_, password=_, will_retain=_, will_qos=3, will=1, clean_session=_}) ->
+    {error, invalid_will_qos};
+%% when will flag = 1, will_qos can have any value -  0, 1 or 2. will_retain can have any value 0 or 1.
+validate_wills(#flags{user=_, password=_, will_retain=_, will_qos=_, will=1, clean_session=_}) ->
+    ok;
+%% rest of the patterns are invalid.
+validate_wills(_) ->
+    {error, invalid_will_flags}.
+
+%% Validate password flag - based on the value of the username flag.
+%% when username flag is set to 0, password flag must not be set to 1.
+validate_password_flag(#flags{user=0, password=1, will_retain=_, will_qos=_, will=_, clean_session=_}) ->
+    {error, invalid_password_flag};    
+%% rest of the patterns are valid.
+validate_password_flag(_) ->
+    ok.
+
+validate_flags(Flags) ->
+    Conn_flags = extract_flags(Flags),
+    check_wills_validity(validate_wills(Conn_flags), Conn_flags).
+
+check_wills_validity(ok, ConnFlags) ->
+    chain_pwd_validity(validate_password_flag(ConnFlags), ConnFlags);
+check_wills_validity({error, Reason}, _) ->
+    {error, Reason}.
+
+chain_pwd_validity(ok, ConnFlags) ->
+    {ok, ConnFlags};
+chain_pwd_validity({error, Reason}, _) ->
+    {error, Reason}.
+
+
+%% validate_flags(Flags) ->
+%%     Conn_flags = extract_flags(Flags),
+%%     Wills_validity = validate_wills(Conn_flags),
+%%     case (Wills_validity  =:= ok) of
+%% 	true ->
+%% 	    Pwd_validity = validate_password_flag(Conn_flags),
+%% 	    case (Pwd_validity  =:= ok) of
+%% 		true ->
+%% 		    {ok, Conn_flags};
+%% 		_  ->
+%% 		    Pwd_validity
+%% 	    end;
+%% 	_  ->
+%% 	    Wills_validity
+%%     end.
+
+
+
+
+%% return_validity_of_conn_flags({ok, Value}, Rest) ->
+%%     VarHead = #var_head{flags = Value},
+%%     State = #state{var_head = VarHead, rest=Rest},
+%%     {reply, valid, valid_conn_flags, State};
+%% return_validity_of_conn_flags({_, Error}) ->
+%%     {stop, normal, {error, Error}, State}.
+
+    
+
+
+
+
 
 %% %% Copyright 2013 KuldeepSinh Chauhan
 %% %%
