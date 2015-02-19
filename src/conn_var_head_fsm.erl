@@ -40,7 +40,7 @@
 	 valid_proto_level/2, valid_proto_level/3,
 	 valid_conn_flags/2, valid_conn_flags/3,
 	 
-	 handle_event/3,
+	 handle_event/3, 
 	 handle_sync_event/4, 
 	 handle_info/3, 
 	 terminate/3, 
@@ -60,6 +60,7 @@
 create() ->
     conn_var_head_fsm_sup:start_child().
 
+%%Events
 send_event(VarHeadFSMPid, {validate_proto_name, Pkt}) ->
     gen_fsm:sync_send_event(VarHeadFSMPid, {validate_proto_name, Pkt});
 send_event(VarHeadFSMPid, {validate_proto_level}) ->
@@ -149,28 +150,28 @@ valid_conn_flags(valid_conn_flags, State) ->
 %% In ready state the FSM should receive "validate_proto_name" event along with the Binary, containing var head and payload.
 %% In response to the event following function validates Protocol name.
 ready({validate_proto_name, <<0:8, 4:8, "MQTT", Rest/binary>>}, _From, State) ->
-    NewState = State#state{rest=Rest},
-    {reply, valid, valid_proto_name, NewState};
+    NewState = State#state{rest = Rest},
+    {reply, {ok, valid_proto_name}, valid_proto_name, NewState};
 ready({validate_proto_name, _Binary}, _, State) ->
     {stop, normal, {error, invalid_proto_name}, State}.
 
 %% Once Protocol name is validated successfully, the next state of the FSM is - valid_proto_name.
 %% In valid_proto_name state the FSM should receive "validate_proto_level" event.
-valid_proto_name({validate_proto_level}, _From, #state{var_head = _, rest = <<4:8, Rest/binary>>} = State) ->
-    NewState = State#state{rest=Rest},
-    {reply, valid, valid_proto_level, NewState};
+valid_proto_name({validate_proto_level}, _From, #state{rest = <<4:8, Rest/binary>>} = State) ->
+    NewState = State#state{rest = Rest},
+    {reply, {ok, valid_proto_level}, valid_proto_level, NewState};
 valid_proto_name({validate_proto_level}, _, State) ->
     {stop, normal, {error, invalid_proto_level}, State}.
 
 %% Once Protocol level is validated successfully, the next state of the FSM is - valid_proto_level.
 %% In valid_proto_level state the FSM should receive "validate_conn_flags" event.
-valid_proto_level({validate_conn_flags}, _From, #state{var_head = _, rest = <<Flags:7, 0:1, Rest/binary>>} = State) ->
+valid_proto_level({validate_conn_flags}, _From, #state{rest = <<Flags:7, 0:1, Rest/binary>>} = State) ->
     {ReturnCode, Value} = validate_flags(Flags),
     case (ReturnCode =:= ok) of 
 	true -> 
 	    VarHead = #var_head{flags = Value},
 	    NewState = #state{var_head = VarHead, rest=Rest},
-	    {reply, valid, valid_conn_flags, NewState};	    
+	    {reply, {ok, valid_conn_flags}, valid_conn_flags, NewState};	    
 	_ ->
 	    {stop, normal, {ReturnCode, Value}, State}
     end;
@@ -182,7 +183,7 @@ valid_proto_level({validate_conn_flags}, _, State) ->
 valid_conn_flags({extract_kat}, _From, #state{var_head = VarHead, rest = <<KAT:16, Rest/binary>>} = State) ->
     NewVarHead = VarHead#var_head{kat = KAT},
     NewState = State#state{var_head = NewVarHead, rest = Rest},
-    {stop, normal, NewState, NewState};
+    {stop, normal, {ok, valid_kat_value, NewState}, NewState};
 valid_conn_flags({extract_kat}, _, State) ->
     {stop, normal, {error, invalid_kat_value}, State}.
 
@@ -294,7 +295,7 @@ validate_password_flag(_) ->
     ok.
 
 validate_flags(Flags) ->
-    Conn_flags = extract_flags(Flags),
+    Conn_flags = extract_flags(<<Flags:7>>),
     check_wills_validity(validate_wills(Conn_flags), Conn_flags).
 
 check_wills_validity(ok, ConnFlags) ->

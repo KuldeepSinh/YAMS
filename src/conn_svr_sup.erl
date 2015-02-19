@@ -79,8 +79,8 @@ init([]) ->
     Shutdown = 2000,
     Type = worker,
 
-    ConnectSvr = {connect_svr, {connect_svr, start_link, []}, Restart, Shutdown, Type, [connect_svr]},
-    {ok, {SupFlags, [ConnectSvr]}}.
+    ConnSvr = {conn_svr, {conn_svr, start_link, []}, Restart, Shutdown, Type, [conn_svr]},
+    {ok, {SupFlags, [ConnSvr]}}.
 
 %%%===================================================================
 %%% Internal functions

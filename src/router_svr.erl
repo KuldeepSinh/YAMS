@@ -184,7 +184,7 @@ call_router_fsm(APid, RSvrPid, Pkt) ->
 		    router_fsm:send_event(RFSMPid, {route_pkt}),
 		    stop(RSvrPid);
 		_ ->     
-		    stop(RSvrPid)
+		    stop(RSvrPid)		    
 	    end;
 	_ ->
 	    stop(RSvrPid)
