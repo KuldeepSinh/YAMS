@@ -30,7 +30,9 @@
 	]).
 
 %% Supervisor callbacks
--export([init/1]).
+-export([
+	 init/1
+	]).
 
 -define(SERVER, ?MODULE).
 %%%===================================================================
@@ -65,15 +67,6 @@ start_link() ->
 %% @end
 %%--------------------------------------------------------------------
 init([]) ->
-    %% RestartStrategy = simple_one_for_one,
-    %% MaxRestarts = 0,
-    %% MaxSecondsBetweenRestarts = 1,
-
-    %% SupFlags = {RestartStrategy, MaxRestarts, MaxSecondsBetweenRestarts},
-
-    %% Restart = temporary,
-    %% Shutdown = 2000,
-    %% Type = supervisor,
     RestartStrategy = one_for_one,
     MaxRestarts = 0,
     MaxSecondsBetweenRestarts = 1,
@@ -85,8 +78,8 @@ init([]) ->
 
 
     ConnVarHeadFsmSup = {conn_var_head_fsm_sup, {conn_var_head_fsm_sup, start_link, []}, Restart, Shutdown, Type, [conn_var_head_fsm_sup]},
-    ConnPayloadFsmSup = {conn_payload_fsm_sup,  {conn_payload_fsm_sup, start_link, []}, Restart, Shutdown, Type, [conn_payload_fsm_sup]},
-    {ok, {SupFlags, [ConnPayloadFsmSup, ConnVarHeadFsmSup]}}.
+    ConnPayloadSvrSup = {conn_payload_svr_sup,  {conn_payload_svr_sup, start_link, []}, Restart, Shutdown, Type, [conn_payload_svr_sup]},
+    {ok, {SupFlags, [ConnPayloadSvrSup, ConnVarHeadFsmSup]}}.
 
 %%%===================================================================
 %%% Internal functions

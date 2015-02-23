@@ -24,11 +24,18 @@
 
 -behaviour(gen_server).
 
+-include("../include/connect.hrl").
+
 %% API
 -export([
 	 create/1, %% Call supervisor to create child process, that is the acceptor process.
 	 start_link/1, %% Call gen_server to initialize acceptor process.
 	 stop/1 %% Stop acceptor
+	]).
+
+%% API for sending ACKs back
+-export([
+	 connack/2
 	]).
 
 %% gen_event callbacks
@@ -82,6 +89,19 @@ start_link(LSock) ->
 %%--------------------------------------------------------------------
 stop(APid) ->
     gen_server:cast(APid, stop).
+
+
+%%%===================================================================
+%%% APIs for sending ACKs back
+%%%===================================================================
+
+%%--------------------------------------------------------------------
+%% @doc
+%% connack back to the client.
+%% @end
+%%--------------------------------------------------------------------
+connack(APid, Msg) ->
+    gen_server:cast(APid, {connack, Msg}).
 
 
 %%%===================================================================

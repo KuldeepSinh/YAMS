@@ -1,4 +1,4 @@
-%% Copyright 2013 KuldeepSinh Chauhan
+%% Copyright 2013, 2014, 2015 KuldeepSinh Chauhan
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -14,19 +14,21 @@
 
 %%%-------------------------------------------------------------------
 %%% @author  KuldeepSinh Chauhan
-%%% @copyright (C) 2013, 
+%%% @copyright (C) 2013, 2014, 2015
 %%% @doc
-%%%     This module will supervise connect message handlers.
+%%%     This module will supervise connect payload gen server.
 %%% @end
-%%% Created : 10 Aug 2013 by  KuldeepSinh Chauhan
+%%% Created : 13 Feb 2015 by  KuldeepSinh Chauhan
 %%%-------------------------------------------------------------------
--module(conn_payload_fsm_sup).
+-module(conn_payload_svr_sup).
 
 -behaviour(supervisor).
 
 %% API
--export([start_link/0, 
-	 start_child/2]).
+-export([
+	 start_link/0, 
+	 start_child/2
+	]).
 
 %% Supervisor callbacks
 -export([init/1]).
@@ -77,8 +79,10 @@ init([]) ->
     Shutdown = 2000,
     Type = worker,
 
-    ConnPayloadFsm = {conn_payload_fsm, {conn_payload_fsm, start_link, []}, Restart, Shutdown, Type, [conn_payload_fsm]},
-    {ok, {SupFlags, [ConnPayloadFsm]}}.
+    %% conn_paylaod_svr is a gen_server, which will split payload in accordance with the connect_flags. 
+    %% Further it will group together payload components along with the connect_flags associated with them.
+    ConnPayloadSvr = {conn_payload_svr, {conn_payload_svr, start_link, []}, Restart, Shutdown, Type, [conn_payload_svr]},
+    {ok, {SupFlags, [ConnPayloadSvr]}}.
 
 %%%===================================================================
 %%% Internal functions

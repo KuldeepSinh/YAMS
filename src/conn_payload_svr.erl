@@ -1,4 +1,4 @@
-%% Copyright 2013 KuldeepSinh Chauhan
+%% Copyright 2013, 2014, 2015 KuldeepSinh Chauhan
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -14,22 +14,32 @@
 
 %%%-------------------------------------------------------------------
 %%% @author  KuldeepSinh Chauhan
-%%% @copyright (C) 2013, 
+%%% @copyright (C) 2013, 2014, 2015
 %%% @doc
 %%%
 %%% @end
-%%% Created : 17 Aug 2013 by  KuldeepSinh Chauhan
+%%% Created : 21 Feb 2015 by  KuldeepSinh Chauhan
 %%%-------------------------------------------------------------------
--module(conn_payload_fsm).
+-module(conn_payload_svr).
 
 -behaviour(gen_server).
 
+-include("../include/connect.hrl").
+
 %% API
--export([start_link/0]).
+-export([
+	 start_link/0
+	]).
 
 %% gen_server callbacks
--export([init/1, handle_call/3, handle_cast/2, handle_info/2,
-	 terminate/2, code_change/3]).
+-export([
+	 init/1, 
+	 handle_call/3, 
+	 handle_cast/2, 
+	 handle_info/2,
+	 terminate/2, 
+	 code_change/3
+	]).
 
 -define(SERVER, ?MODULE).
 

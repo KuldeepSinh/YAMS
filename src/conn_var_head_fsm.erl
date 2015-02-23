@@ -49,10 +49,12 @@
 
 -define(SERVER, ?MODULE).
 
--record(flags, {user, password, will_retain, will_qos, will, clean_session}).
--record(var_head, {flags, kat}).
--record(state, {var_head, rest}).
-
+%% Included "connect.hrl" contains definitions of conn_flags and conn_var_head.
+%%-record(conn_flags, {user, password, will_retain, will_qos, will, clean_session}).
+%%-record(conn_var_head, {conn_flags, kat}).
+%%-record(conn_pkt, {conn_var_head, payload}). 
+%%       conn_pkt will store state of the fsm. Same state will be returned to conn_svr for further processing.
+-include("../include/connect.hrl").
 %%%===================================================================
 %%% API
 %%%===================================================================
@@ -69,7 +71,6 @@ send_event(VarHeadFSMPid, {validate_conn_flags}) ->
     gen_fsm:sync_send_event(VarHeadFSMPid, {validate_conn_flags});
 send_event(VarHeadFSMPid, {extract_kat}) ->
     gen_fsm:sync_send_event(VarHeadFSMPid, {extract_kat}).
-
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -101,7 +102,8 @@ start_link() ->
 %% @end
 %%--------------------------------------------------------------------
 init([]) ->
-    {ok, ready, #state{}}.
+    State = #conn_pkt{},
+    {ok, ready, State}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -150,41 +152,44 @@ valid_conn_flags(valid_conn_flags, State) ->
 %% In ready state the FSM should receive "validate_proto_name" event along with the Binary, containing var head and payload.
 %% In response to the event following function validates Protocol name.
 ready({validate_proto_name, <<0:8, 4:8, "MQTT", Rest/binary>>}, _From, State) ->
-    NewState = State#state{rest = Rest},
+    NewState = State#conn_pkt{payload = Rest},
     {reply, {ok, valid_proto_name}, valid_proto_name, NewState};
-ready({validate_proto_name, _Binary}, _, State) ->
-    {stop, normal, {error, invalid_proto_name}, State}.
+%% When protocol level is unacceptable, {error, Error_message} = {error, invalid_proto_name} will be returned.
+%% The error code returned will be in conformance with [MQTT-3.1.2-1].
+ready({validate_proto_name, _Binary}, _From, State) ->
+    {stop, normal, {error, undefined, invalid_proto_name}, State}.
 
 %% Once Protocol name is validated successfully, the next state of the FSM is - valid_proto_name.
 %% In valid_proto_name state the FSM should receive "validate_proto_level" event.
-valid_proto_name({validate_proto_level}, _From, #state{rest = <<4:8, Rest/binary>>} = State) ->
-    NewState = State#state{rest = Rest},
+valid_proto_name({validate_proto_level}, _From, #conn_pkt{payload = <<4:8, Rest/binary>>} = State) ->
+    NewState = State#conn_pkt{payload = Rest},
     {reply, {ok, valid_proto_level}, valid_proto_level, NewState};
-valid_proto_name({validate_proto_level}, _, State) ->
-    {stop, normal, {error, invalid_proto_level}, State}.
+%% When protocol level is unacceptable, {error, Error_message} = {error, unacceptable_proto_level} will be returned.
+%% The error code returned will be in conformance with [MQTT-3.1.2-2].
+valid_proto_name({validate_proto_level}, _From, State) ->
+    {stop, normal, {error, 1, unacceptable_proto_level}, State}.
 
 %% Once Protocol level is validated successfully, the next state of the FSM is - valid_proto_level.
 %% In valid_proto_level state the FSM should receive "validate_conn_flags" event.
-valid_proto_level({validate_conn_flags}, _From, #state{rest = <<Flags:7, 0:1, Rest/binary>>} = State) ->
+valid_proto_level({validate_conn_flags}, _From, #conn_pkt{payload = <<Flags:8, Rest/binary>>} = State) ->
     {ReturnCode, Value} = validate_flags(Flags),
     case (ReturnCode =:= ok) of 
 	true -> 
-	    VarHead = #var_head{flags = Value},
-	    NewState = #state{var_head = VarHead, rest=Rest},
+	    VarHead = #conn_var_head{conn_flags = Value},
+	    NewState = #conn_pkt{conn_var_head = VarHead, payload=Rest},
 	    {reply, {ok, valid_conn_flags}, valid_conn_flags, NewState};	    
 	_ ->
 	    {stop, normal, {ReturnCode, Value}, State}
-    end;
-valid_proto_level({validate_conn_flags}, _, State) ->
-	    {stop, normal, {error, invalid_reserved_flag}, State}.
+    end.
 
 %% Once connect flags validated successfully, the next state of the FSM is - valid_conn_flags.
 %% In valid_conn_flags state the FSM should receive "extract_kat" event.
-valid_conn_flags({extract_kat}, _From, #state{var_head = VarHead, rest = <<KAT:16, Rest/binary>>} = State) ->
-    NewVarHead = VarHead#var_head{kat = KAT},
-    NewState = State#state{var_head = NewVarHead, rest = Rest},
+valid_conn_flags({extract_kat}, _From, #conn_pkt{conn_var_head = VarHead, payload = <<KAT:16, Rest/binary>>} = State) ->
+    NewVarHead = VarHead#conn_var_head{kat = KAT},
+    NewState = State#conn_pkt{conn_var_head = NewVarHead, payload = Rest},
     {stop, normal, {ok, valid_kat_value, NewState}, NewState};
-valid_conn_flags({extract_kat}, _, State) ->
+valid_conn_flags({extract_kat}, _From, State) ->
+    %% When protocol level is unacceptable, {error, Error_message} = {error, invalid_kat_value} will be returned.
     {stop, normal, {error, invalid_kat_value}, State}.
 
 %%--------------------------------------------------------------------
@@ -269,76 +274,67 @@ code_change(_OldVsn, StateName, State, _Extra) ->
 %%% Internal functions
 %%%===================================================================
 %% Extract each flag from the first 7 bits of the packet.
-extract_flags(<<User:1, Password:1, Will_retain:1, Will_qos:2, Will:1, Clean_session:1>>) ->
-    #flags{user=User, password=Password, will_retain=Will_retain, will_qos=Will_qos, will=Will, clean_session=Clean_session}.    
+extract_flags(<<User:1, Password:1, Will_retain:1, Will_qos:2, Will:1, Clean_session:1, Reserved:1>>) ->
+    #conn_flags	{user = User, password=Password, will_retain=Will_retain, will_qos=Will_qos, will=Will, clean_session=Clean_session, reserved = Reserved}.    
+
+%% validate reserved flag.
+%% The Server MUST validate that the reserved flag in the CONNECT Control Packet is set to zero and disconnect the Client if it is not zero [MQTT-3.1.2-3].
+validate_reserved_flag(#conn_flags{reserved = 0}) ->
+    ok;   
+%% When reserved flag is set to 1, {error,  Error_message} = {error, invalid_reserved_flag} will be returned.
+validate_reserved_flag(#conn_flags{reserved = 1}) ->
+    {error, invalid_reserved_flag}.
 
 %% Validate will_retain and will_qos flags - based on the value of the will flag.
-%% when will flag = 0, will_qos and will_retain flags must be zero.
-validate_wills(#flags{user=_, password=_, will_retain=0, will_qos=0, will=0, clean_session=_}) ->
+%% If the Will Flag is set to 0 the Will QoS and Will Retain fields in the Connect Flags MUST be set to zero and the Will Topic and Will Message fields MUST NOT be present in the payload [MQTT-3.1.2-11]
+%% If the Will Flag is set to 0, then the Will QoS MUST be set to 0 (0x00) [MQTT-3.1.2-13]
+%% If the Will Flag is set to 0, then the Will Retain Flag MUST be set to 0 [MQTT-3.1.2-15].
+validate_wills(#conn_flags{will_retain = 0, will_qos = 0, will = 0}) ->
     ok;   
-%% when will flag = 1, will_qos must not be equal to 3
-validate_wills(#flags{user=_, password=_, will_retain=_, will_qos=3, will=1, clean_session=_}) ->
+%% If the Will Flag is set to 0 the Will QoS and Will Retain fields in the Connect Flags MUST be set to zero and the Will Topic and Will Message fields MUST NOT be present in the payload [MQTT-3.1.2-11]
+%% If the Will Flag is set to 0, then the Will QoS MUST be set to 0 (0x00) [MQTT-3.1.2-13]
+%% If the Will Flag is set to 0, then the Will Retain Flag MUST be set to 0 [MQTT-3.1.2-15].
+validate_wills(#conn_flags{will = 0}) ->
+    {error, invalid_will_flags};
+%% If the Will Flag is set to 1, the value of Will QoS can be 0 (0x00), 1 (0x01), or 2 (0x02). It MUST NOT be 3 (0x03) [MQTT-3.1.2-14].
+%% Combining this rule with above pattern - will_qos will never be equal to 3 for any value of will flag.
+validate_wills(#conn_flags{will_qos = 3}) ->
     {error, invalid_will_qos};
-%% when will flag = 1, will_qos can have any value -  0, 1 or 2. will_retain can have any value 0 or 1.
-validate_wills(#flags{user=_, password=_, will_retain=_, will_qos=_, will=1, clean_session=_}) ->
-    ok;
-%% rest of the patterns are invalid.
-validate_wills(_) ->
-    {error, invalid_will_flags}.
+%% If the Will Flag is set to 1, the value of Will QoS can be 0 (0x00), 1 (0x01), or 2 (0x02). It MUST NOT be 3 (0x03) [MQTT-3.1.2-14].
+%% Combining this rule with above patterns - rest of the will flags will be valid.
+validate_wills(#conn_flags{}) ->
+    ok.
+
 
 %% Validate password flag - based on the value of the username flag.
-%% when username flag is set to 0, password flag must not be set to 1.
-validate_password_flag(#flags{user=0, password=1, will_retain=_, will_qos=_, will=_, clean_session=_}) ->
+%% If the User Name Flag is set to 0, the Password Flag MUST be set to 0 [MQTT-3.1.2-22].
+%% (If the User Name Flag is set to 0 and the Password Flag is set to 1, its an error.)
+validate_password_flag(#conn_flags{user = 0, password = 1}) ->
     {error, invalid_password_flag};    
 %% rest of the patterns are valid.
+%% (If the User Name Flag is set to 0, the Password Flag MUST be set to 0 [MQTT-3.1.2-22].)
 validate_password_flag(_) ->
     ok.
 
 validate_flags(Flags) ->
-    Conn_flags = extract_flags(<<Flags:7>>),
-    check_wills_validity(validate_wills(Conn_flags), Conn_flags).
+    Conn_flags = extract_flags(<<Flags:8>>),
+    %%check_wills_validity(validate_wills(Conn_flags), Conn_flags).
+    check_resreved_flag_validity(validate_reserved_flag(Conn_flags), Conn_flags).
 
-check_wills_validity(ok, ConnFlags) ->
+check_resreved_flag_validity(ok, Conn_flags) ->
+    chain_wills_validity(validate_wills(Conn_flags), Conn_flags);
+check_resreved_flag_validity({error, Reason}, _Conn_flags) ->
+    {error, Reason}.
+
+chain_wills_validity(ok, ConnFlags) ->
     chain_pwd_validity(validate_password_flag(ConnFlags), ConnFlags);
-check_wills_validity({error, Reason}, _) ->
+chain_wills_validity({error, Reason}, _Conn_flags) ->
     {error, Reason}.
 
 chain_pwd_validity(ok, ConnFlags) ->
     {ok, ConnFlags};
-chain_pwd_validity({error, Reason}, _) ->
+chain_pwd_validity({error, Reason}, _Conn_flags) ->
     {error, Reason}.
-
-
-%% validate_flags(Flags) ->
-%%     Conn_flags = extract_flags(Flags),
-%%     Wills_validity = validate_wills(Conn_flags),
-%%     case (Wills_validity  =:= ok) of
-%% 	true ->
-%% 	    Pwd_validity = validate_password_flag(Conn_flags),
-%% 	    case (Pwd_validity  =:= ok) of
-%% 		true ->
-%% 		    {ok, Conn_flags};
-%% 		_  ->
-%% 		    Pwd_validity
-%% 	    end;
-%% 	_  ->
-%% 	    Wills_validity
-%%     end.
-
-
-
-
-%% return_validity_of_conn_flags({ok, Value}, Rest) ->
-%%     VarHead = #var_head{flags = Value},
-%%     State = #state{var_head = VarHead, rest=Rest},
-%%     {reply, valid, valid_conn_flags, State};
-%% return_validity_of_conn_flags({_, Error}) ->
-%%     {stop, normal, {error, Error}, State}.
-
-    
-
-
-
 
 
 %% %% Copyright 2013 KuldeepSinh Chauhan

@@ -43,6 +43,11 @@
 
 -define(SERVER, ?MODULE).
 
+%% Included "connect.hrl" contains definitions of conn_flags and conn_var_head.
+%%-record(conn_flags, {user, password, will_retain, will_qos, will, clean_session}).
+%%-record(conn_var_head, {conn_flags, kat}).
+%%-record(conn_pkt, {conn_var_head, payload}). 
+-include("../include/connect.hrl").
 -record(state, {apid, self, msg}).
 
 %%%===================================================================
