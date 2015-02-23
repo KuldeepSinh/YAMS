@@ -167,11 +167,16 @@ code_change(_OldVsn, State, _Extra) ->
 %% Internal functions
 %% ===================================================================
 
-process_message(_APid, Msg) ->
-    %% create fsm
+process_message(_APid, Pkt) ->
+    associate_flags_with_payload(separate_varhead_n_payload(Pkt)).
+
+
+%% separate varhead and payload from the Packet.
+separate_varhead_n_payload(Pkt) ->
+    %% create conn_var_head_fsm
     {ok, VarHeadFSMPid} = conn_var_head_fsm:create(),
-    %% send first evnt and a message for further processing
-    call_conn_var_head_fsm(VarHeadFSMPid, conn_var_head_fsm:send_event(VarHeadFSMPid, {validate_proto_name, Msg})).
+    %% send first event and packet (received from router) for further processing
+    call_conn_var_head_fsm(VarHeadFSMPid, conn_var_head_fsm:send_event(VarHeadFSMPid, {validate_proto_name, Pkt})).
 
 call_conn_var_head_fsm(VarHeadFSMPid, {ok, valid_proto_name}) ->
     call_conn_var_head_fsm(VarHeadFSMPid, conn_var_head_fsm:send_event(VarHeadFSMPid, {validate_proto_level}));
@@ -179,10 +184,15 @@ call_conn_var_head_fsm(VarHeadFSMPid, {ok, valid_proto_level}) ->
     call_conn_var_head_fsm(VarHeadFSMPid, conn_var_head_fsm:send_event(VarHeadFSMPid, {validate_conn_flags}));
 call_conn_var_head_fsm(VarHeadFSMPid, {ok, valid_conn_flags}) ->
     call_conn_var_head_fsm(VarHeadFSMPid, conn_var_head_fsm:send_event(VarHeadFSMPid, {extract_kat}));
-call_conn_var_head_fsm(_VarHeadFSMPid, {ok, valid_kat_value, _}) ->
-    wallah;
-call_conn_var_head_fsm(_VarHeadFSMPid, _Error) ->
-    error.
+call_conn_var_head_fsm(_VarHeadFSMPid, {ok, valid_kat_value, ConnPkt}) ->
+    {ok, ConnPkt};
+call_conn_var_head_fsm(_VarHeadFSMPid, Error) ->
+    Error.
+
+associate_flags_with_payload({ok, ConnPkt}) ->
+    %% create conn_payload_fsm
+    %% send first event and packet (received from router) for further processing.
+    dummy_ok.
 
 %% call_conn_var_head_fsm(ok, valid_kat_value, _) ->
 %%     acceptor:connack(APid, {1, 1, connack(0)});

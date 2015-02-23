@@ -20,7 +20,7 @@
 %%% @end
 %%% Created : 13 Feb 2015 by  KuldeepSinh Chauhan
 %%%-------------------------------------------------------------------
--module(conn_payload_svr_sup).
+-module(conn_payload_fsm_sup).
 
 -behaviour(supervisor).
 
@@ -81,8 +81,8 @@ init([]) ->
 
     %% conn_paylaod_svr is a gen_server, which will split payload in accordance with the connect_flags. 
     %% Further it will group together payload components along with the connect_flags associated with them.
-    ConnPayloadSvr = {conn_payload_svr, {conn_payload_svr, start_link, []}, Restart, Shutdown, Type, [conn_payload_svr]},
-    {ok, {SupFlags, [ConnPayloadSvr]}}.
+    ConnPayloadFsm = {conn_payload_fsm, {conn_payload_fsm, start_link, []}, Restart, Shutdown, Type, [conn_payload_fsm]},
+    {ok, {SupFlags, [ConnPayloadFsm]}}.
 
 %%%===================================================================
 %%% Internal functions

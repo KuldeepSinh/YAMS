@@ -157,7 +157,7 @@ ready({validate_proto_name, <<0:8, 4:8, "MQTT", Rest/binary>>}, _From, State) ->
 %% When protocol level is unacceptable, {error, Error_message} = {error, invalid_proto_name} will be returned.
 %% The error code returned will be in conformance with [MQTT-3.1.2-1].
 ready({validate_proto_name, _Binary}, _From, State) ->
-    {stop, normal, {error, undefined, invalid_proto_name}, State}.
+    {stop, normal, {error, invalid_proto_name}, State}.
 
 %% Once Protocol name is validated successfully, the next state of the FSM is - valid_proto_name.
 %% In valid_proto_name state the FSM should receive "validate_proto_level" event.
@@ -167,7 +167,7 @@ valid_proto_name({validate_proto_level}, _From, #conn_pkt{payload = <<4:8, Rest/
 %% When protocol level is unacceptable, {error, Error_message} = {error, unacceptable_proto_level} will be returned.
 %% The error code returned will be in conformance with [MQTT-3.1.2-2].
 valid_proto_name({validate_proto_level}, _From, State) ->
-    {stop, normal, {error, 1, unacceptable_proto_level}, State}.
+    {stop, normal, {error, unacceptable_proto_level}, State}.
 
 %% Once Protocol level is validated successfully, the next state of the FSM is - valid_proto_level.
 %% In valid_proto_level state the FSM should receive "validate_conn_flags" event.
