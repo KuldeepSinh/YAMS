@@ -68,13 +68,6 @@ create(APid, Msg) ->
 start_link(APid, Msg) ->
     gen_server:start_link(?MODULE, [APid, Msg], []).
 
-%%--------------------------------------------------------------------
-%% @doc
-%% Stops the router
-%%
-%% @spec start_link() -> {ok, Pid} | ignore | {error, Error}
-%% @end
-%%--------------------------------------------------------------------
 
 stop(RSvrPid) ->
     gen_server:cast(RSvrPid, stop).

@@ -47,28 +47,29 @@ encode_l(Bin, {L, RBits}) ->
 get_string_fields(<<>>) ->
     {error, empty_binary};
 get_string_fields(<<Length:16, Rest/binary>>) ->
-    get_string_fields(Length, Rest).
-% intrenal function
-get_string_fields(Length, Rest) -> 
-    case (size(Rest) >= Length) of 
-	true -> 
-	    {Value, RestBin} = split_binary(Rest, Length),
-	    {Length, Value, RestBin};
-	false ->
-	    {error, length_mismatch}
-    end.
+    get_string_fields(validate_bin_size(Length, Rest), Length, Rest).
+
+% intrenal functions
+get_string_fields(true, Length, Rest) ->
+    {Value, RestBin} = split_binary(Rest, Length),
+    {Length, Value, RestBin};
+get_string_fields(false, _Length, _Rest) ->
+    {error, length_mismatch}.
+% Validate size of binary with respect to the associated length.
+% If size of binary is >= the value of the length field, its valid.
+validate_bin_size(Length, Rest) ->
+    size(Rest) >= Length.  
+
 
 %% Validate if string contains UTF-8 null character.
 %% Rest of the UTF-8 validations are not requried,
 %% because Erlang 17 comes with UTF-8 - RFC 3629 support out of the box.
+validate_string(true) ->
+    {error, string_contains_null_char};
+validate_string(false) ->
+    {ok, string_does_not_contain_null_char};
 validate_string(Value) ->
     NullChar = $\0,
     %% Here, assumption is "Value" is a string (list of chars) - e.g. "abc" is valid, 
     %% "Value" should not be list of string - ["abc"] is invalid.
-    case (lists:member(NullChar, Value)) of 
-	true ->
-	    {error, string_contains_null_char};
-	false ->
-	    {ok, string_does_not_contain_null_char}
-    end.
-
+    validate_string(lists:member(NullChar, Value)).
