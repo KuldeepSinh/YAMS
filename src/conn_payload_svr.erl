@@ -26,7 +26,10 @@
 
 %% API
 -export([
-	 start_link/0
+	 start_link/1,
+	 create/1,
+	 stop/1,
+	 group_flags_and_fields/1
 	]).
 
 %% gen_server callbacks
@@ -47,10 +50,17 @@
 %%-record(conn_pkt, {conn_var_head, payload}). 
 %%       conn_pkt will store state of the fsm. Same state will be returned to conn_svr for further processing.
 -include("../include/connect.hrl").
-
 %%%===================================================================
 %%% API
 %%%===================================================================
+create(Pkt) ->
+    conn_payload_svr_sup:start_child(Pkt).
+
+stop(SelfPid) ->
+    gen_server:cast(SelfPid, stop).
+
+group_flags_and_fields(SelfPid) ->
+    gen_server:call(SelfPid, group_flags_and_fields).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -59,8 +69,8 @@
 %% @spec start_link() -> {ok, Pid} | ignore | {error, Error}
 %% @end
 %%--------------------------------------------------------------------
-start_link() ->
-    gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
+start_link(Pkt) ->
+    gen_server:start_link({local, ?SERVER}, ?MODULE, [Pkt], []).
 
 %%%===================================================================
 %%% gen_server callbacks
@@ -77,8 +87,8 @@ start_link() ->
 %%                     {stop, Reason}
 %% @end
 %%--------------------------------------------------------------------
-init([]) ->
-    {ok, #state{}}.
+init([Pkt]) ->
+    {ok, Pkt}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -94,6 +104,8 @@ init([]) ->
 %%                                   {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
+handle_call(group_flags_and_fields, _From, Pkt) ->
+    {reply, ok, Pkt};
 handle_call(_Request, _From, State) ->
     Reply = ok,
     {reply, Reply, State}.
@@ -108,8 +120,8 @@ handle_call(_Request, _From, State) ->
 %%                                  {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
-handle_cast(_Msg, State) ->
-    {noreply, State}.
+handle_cast(stop, State ) ->
+    {stop, normal, State}.
 
 %%--------------------------------------------------------------------
 %% @private

@@ -77,9 +77,9 @@ init([]) ->
     Type = supervisor,
 
 
-    ConnVarHeadFsmSup = {conn_var_head_fsm_sup, {conn_var_head_fsm_sup, start_link, []}, Restart, Shutdown, Type, [conn_var_head_fsm_sup]},
+    ConnVarHeadSvrSup = {conn_var_head_svr_sup, {conn_var_head_svr_sup, start_link, []}, Restart, Shutdown, Type, [conn_var_head_svr_sup]},
     ConnPayloadSvrSup = {conn_payload_svr_sup,  {conn_payload_svr_sup, start_link, []}, Restart, Shutdown, Type, [conn_payload_svr_sup]},
-    {ok, {SupFlags, [ConnPayloadSvrSup, ConnVarHeadFsmSup]}}.
+    {ok, {SupFlags, [ConnPayloadSvrSup, ConnVarHeadSvrSup]}}.
 
 %%%===================================================================
 %%% Internal functions

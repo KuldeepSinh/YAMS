@@ -105,14 +105,14 @@ init([Pkt]) ->
 %%                                   {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
-handle_call(validate_var_head, _From, State) ->
+handle_call(validate_var_head, _From, #conn_pkt{payload = Pkt} = State) ->
     Reply_ConnPkt = extract_kat
 		      (validate_password_flag
 			 (validate_will_flags
 			    (validate_reserved_flag
 			       (extract_flags
 				  (validate_proto_level
-				     (validate_proto_name(State))))))),
+				     (validate_proto_name(Pkt))))))),
     {reply, Reply_ConnPkt, State}.
 
 %%--------------------------------------------------------------------
@@ -169,7 +169,6 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
-
 
 %% Following function validates Protocol name.
 validate_proto_name (<<0:8, 4:8, "MQTT", Rest/binary>>) ->

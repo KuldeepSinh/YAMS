@@ -45,12 +45,12 @@
 	  payload
 	}
        ).
-%% full id of the client is a composit field containing client-id and the user name.
-%% (password field is not included)
+%% full id of the client is a composit field containing client-id, user name and password.
 -record(full_id, 
 	{
 	  client_id, %% value of client ID (retrieved from the connect payload)
-	  username %% value of client's username (retrieved from the connect payload)
+	  username, %% value of client's username (retrieved from the connect payload)
+	  password
 	}
        ).
 %% will record should be used for the will management.

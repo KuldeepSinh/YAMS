@@ -48,7 +48,7 @@
 %%-record(conn_var_head, {conn_flags, kat}).
 %%-record(conn_pkt, {conn_var_head, payload}). 
 -include("../include/connect.hrl").
--record(state, {apid, self, msg}).
+-record(state, {apid, self, pkt}).
 
 %%%===================================================================
 %%% API
@@ -61,11 +61,11 @@
 %% @spec start_link() -> {ok, Pid} | ignore | {error, Error}
 %% @end
 %%--------------------------------------------------------------------
-create(APid, Msg) ->
-    conn_svr_sup:start_child(APid, Msg).
+create(APid, Pkt) ->
+    conn_svr_sup:start_child(APid, Pkt).
 
-start_link(APid, Msg) ->
-    gen_server:start_link(?MODULE, [APid, Msg], []).
+start_link(APid, Pkt) ->
+    gen_server:start_link(?MODULE, [APid, Pkt], []).
 
 stop(CPid) ->
     gen_server:cast(CPid, stop).
@@ -85,8 +85,8 @@ stop(CPid) ->
 %%                     {stop, Reason}
 %% @end
 %%--------------------------------------------------------------------
-init([APid, Msg]) ->
-    {ok, #state{apid = APid, self = self(), msg = Msg}, 0}.
+init([APid, Pkt]) ->
+    {ok, #state{apid = APid, self = self(), pkt = Pkt}, 0}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -131,8 +131,8 @@ handle_cast(_Message, State) ->
 %%                                   {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
-handle_info(timeout, #state{apid = APid, self = CPid, msg = Msg} = State) ->
-    process_message(APid, Msg),
+handle_info(timeout, #state{apid = APid, self = CPid, pkt = Pkt} = State) ->
+    ConnPkt = process_var_head(Pkt),
     stop(CPid),
     {noreply, State};
 handle_info(_Info, State) ->
@@ -167,51 +167,24 @@ code_change(_OldVsn, State, _Extra) ->
 %% Internal functions
 %% ===================================================================
 
-process_message(_APid, Pkt) ->
-    associate_flags_with_payload(separate_varhead_n_payload(Pkt)).
+process_var_head(Pkt) ->
+    {ok, VarHeadSvrPid, ConnPkt} = separate_varhead_n_payload(create_var_head_svr(Pkt)),
+    stop_var_head_svr(VarHeadSvrPid),
+    ConnPkt.    
 
+%% create conn_var_head_svr
+create_var_head_svr(Pkt) ->
+    Result = conn_var_head_svr:create(Pkt), %% where, Result = {ok, VarHeadSvrPid}
+    Result.
 
 %% separate varhead and payload from the Packet.
-separate_varhead_n_payload(Pkt) ->
-    %% create conn_var_head_fsm
-    {ok, VarHeadFSMPid} = conn_var_head_fsm:create(),
-    %% send first event and packet (received from router) for further processing
-    call_conn_var_head_fsm(VarHeadFSMPid, conn_var_head_fsm:send_event(VarHeadFSMPid, {validate_proto_name, Pkt})).
+separate_varhead_n_payload({ok, VarHeadSvrPid}) ->
+    ConnPkt = conn_var_head_svr:validate_var_head(VarHeadSvrPid), %% where, ConnPkt = #conn_pkt{}
+    {ok, VarHeadSvrPid, ConnPkt}.  
 
-call_conn_var_head_fsm(VarHeadFSMPid, {ok, valid_proto_name}) ->
-    call_conn_var_head_fsm(VarHeadFSMPid, conn_var_head_fsm:send_event(VarHeadFSMPid, {validate_proto_level}));
-call_conn_var_head_fsm(VarHeadFSMPid, {ok, valid_proto_level}) ->
-    call_conn_var_head_fsm(VarHeadFSMPid, conn_var_head_fsm:send_event(VarHeadFSMPid, {validate_conn_flags}));
-call_conn_var_head_fsm(VarHeadFSMPid, {ok, valid_conn_flags}) ->
-    call_conn_var_head_fsm(VarHeadFSMPid, conn_var_head_fsm:send_event(VarHeadFSMPid, {extract_kat}));
-call_conn_var_head_fsm(_VarHeadFSMPid, {ok, valid_kat_value, ConnPkt}) ->
-    {ok, ConnPkt};
-call_conn_var_head_fsm(_VarHeadFSMPid, Error) ->
-    Error.
-
-associate_flags_with_payload({ok, ConnPkt}) ->
-    %% create conn_payload_fsm
-    %% send first event and packet (received from router) for further processing.
-    dummy_ok.
-
-%% call_conn_var_head_fsm(ok, valid_kat_value, _) ->
-%%     acceptor:connack(APid, {1, 1, connack(0)});
-%% call_conn_var_head_fsm({error, invalid_reserved_flag}) ->
-%%     acceptor:connack(APid, {1, 1, connack(1)});
-%% call_conn_var_head_fsm({error, invalid_proto_name}) ->
-%%     acceptor:connack(APid, {1, 1, connack(2)});
-%% call_conn_var_head_fsm({error, invalid_proto_level}) ->
-%%     acceptor:connack(APid, {1, 1, connack(3)});
-%% call_conn_var_head_fsm({error, invalid_will_flags}) ->
-%%     acceptor:connack(APid, {1, 1, connack(4)}).
-%% call_conn_var_head_fsm({error, invalid_password_flag}) ->
-%%     acceptor:connack(APid, {1, 1, connack(5)}).
-%% call_conn_var_head_fsm({error, invalid_kat_value}) ->
-%%     acceptor:connack(APid, {1, 1, connack(6)}).
-
-
-
-
+stop_var_head_svr(VarHeadSvrPid) ->
+    conn_var_head_svr:stop(VarHeadSvrPid).
+    
 %% %% Copyright 2013 KuldeepSinh Chauhan
 %% %%
 %% %% Licensed under the Apache License, Version 2.0 (the "License");
