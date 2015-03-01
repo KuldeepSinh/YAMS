@@ -111,7 +111,7 @@ handle_call(group_flags_and_fields, _From, Pkt) ->
 		  (extract_will_msg
 		     (extract_will_topic
 			(extract_client_id(Pkt))))),
-    {reply, Reply, Pkt}.
+    {reply, prepare_reply(Reply), Pkt}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -171,58 +171,64 @@ extract_client_id(#conn_pkt{conn_var_head = ConnVarHead, payload = Payload}) ->
     get_client(yams_lib:extract_str(Payload), ConnVarHead).
 
 get_client({error, Reason}, _ConnVarHead) ->
-    {error, Reason};
+    {error, Reason, undefined};
 get_client({ok, _Length, Value, RestBin}, ConnVarHead) ->
     {ok, RestBin, ConnVarHead, #client{client_id = Value}}.
 
-extract_will_topic({error, Reason}) ->
-    {error, Reason};
+extract_will_topic({error, Reason, ReturnCode}) ->
+    {error, Reason, ReturnCode};
 extract_will_topic({ok, RestBin, #conn_var_head{conn_flags = #conn_flags{will = 1}} = ConnVarHead, Client}) ->
     get_will_topic(yams_lib:extract_str(RestBin), ConnVarHead, Client);
-extract_will_topic({ok, RestBin, ConnVarHead, Client, #conn_will{}}) ->
-    {ok, RestBin, ConnVarHead, Client}.
+extract_will_topic({ok, RestBin, ConnVarHead, Client}) ->
+    {ok, RestBin, ConnVarHead, Client, #conn_will{}}.
 
 get_will_topic({error, Reason}, _ConnVarHead, _Client) ->
-    {error, Reason};
+    {error, Reason, undefined};
 get_will_topic({ok, _Length, Value, RestBin}, #conn_var_head{conn_flags = #conn_flags{will = Will, will_qos = WillQoS, will_retain = WillRetain}} = ConnVarHead, Client) ->
     {ok, RestBin, ConnVarHead, Client, #conn_will{client = Client, will = Will, will_qos = WillQoS, will_retain = WillRetain, will_topic = Value}}.
 
-extract_will_msg({error, Reason}) ->
-    {error, Reason};
-extract_will_msg({ok, RestBin, #conn_var_head{conn_flags = #conn_flags{will = 1}} = ConnVarHead, Client, Will}) ->
-    get_will_msg(yams_lib:extract_str(RestBin), ConnVarHead, Client, Will);
-extract_will_msg({ok, RestBin, ConnVarHead, Client, Will}) ->
-    {ok, RestBin, ConnVarHead, Client, Will}.
+extract_will_msg({error, Reason, ReturnCode}) ->
+    {error, Reason, ReturnCode};
+extract_will_msg({ok, RestBin, #conn_var_head{conn_flags = #conn_flags{will = 1}} = ConnVarHead, Client, ConnWill}) ->
+    get_will_msg(yams_lib:extract_str(RestBin), ConnVarHead, Client, ConnWill);
+extract_will_msg({ok, RestBin, ConnVarHead, Client, ConnWill}) ->
+    {ok, RestBin, ConnVarHead, Client, ConnWill}.
 
-get_will_msg({error, Reason}, _ConnVarHead, _Client, _Will) ->
-    {error, Reason};
-get_will_msg({ok, _Length, Value, RestBin}, ConnVarHead, Client, Will) ->
-    {ok, RestBin, ConnVarHead, Client, Will#conn_will{will_msg = Value}}.
+get_will_msg({error, Reason}, _ConnVarHead, _Client, _ConnWill) ->
+    {error, Reason, undefined};
+get_will_msg({ok, _Length, Value, RestBin}, ConnVarHead, Client, ConnWill) ->
+    {ok, RestBin, ConnVarHead, Client, ConnWill#conn_will{will_msg = Value}}.
 
 
-extract_user({error, Reason}) ->
-    {error, Reason};
-extract_user({ok, RestBin, #conn_var_head{conn_flags = #conn_flags{user = 1}} = ConnVarHead, Client, Will}) ->
-    get_user(yams_lib:extract_str(RestBin), ConnVarHead, Client, Will);
-extract_user({ok, RestBin, ConnVarHead, Client, Will}) ->
-    {ok, RestBin, ConnVarHead, Client, Will}.
+extract_user({error, Reason, ReturnCode}) ->
+    {error, Reason, ReturnCode};
+extract_user({ok, RestBin, #conn_var_head{conn_flags = #conn_flags{user = 1}} = ConnVarHead, Client, ConnWill}) ->
+    get_user(yams_lib:extract_str(RestBin), ConnVarHead, Client, ConnWill);
+extract_user({ok, RestBin, ConnVarHead, Client, ConnWill}) ->
+    {ok, RestBin, ConnVarHead, Client, ConnWill}.
 
-get_user({error, Reason}, _ConnVarHead, _Client, _Will) ->
-    {error, Reason};
-get_user({ok, _Length, Value, RestBin}, ConnVarHead, Client, Will) ->
-    {ok, RestBin, ConnVarHead, Client#client{username = Value}, Will#conn_will{client = Client#client{username = Value}}}.
+get_user({error, Reason}, _ConnVarHead, _Client, _ConnWill) ->
+    {error, Reason, undefined};
+get_user({ok, _Length, Value, RestBin}, ConnVarHead, Client, ConnWill) ->
+    {ok, RestBin, ConnVarHead, Client#client{username = Value}, ConnWill#conn_will{client = Client#client{username = Value}}}.
 
-extract_password({error, Reason}) ->
-    {error, Reason};
-extract_password({ok, RestBin, #conn_var_head{conn_flags = #conn_flags{password = 1}} = ConnVarHead, Client, Will}) ->
-    get_password(yams_lib:extract_str(RestBin), ConnVarHead, Client, Will);
-extract_password({ok, RestBin, ConnVarHead, Client, Will}) ->
-    {ok, RestBin, ConnVarHead, Client, Will}.
+extract_password({error, Reason, ReturnCode}) ->
+    {error, Reason, ReturnCode};
+extract_password({ok, RestBin, #conn_var_head{conn_flags = #conn_flags{password = 1}} = ConnVarHead, Client, ConnWill}) ->
+    get_password(yams_lib:extract_str(RestBin), ConnVarHead, Client, ConnWill);
+extract_password({ok, RestBin, ConnVarHead, Client, ConnWill}) ->
+    {ok, RestBin, ConnVarHead, Client, ConnWill}.
 
-get_password({error, Reason}, _ConnVarHead, _Client, _Will) ->
-    {error, Reason};
-get_password({ok, _Length, Value, RestBin}, ConnVarHead, Client, Will) ->
-    {ok, RestBin, ConnVarHead, Client#client{password = Value}, Will#conn_will{client = Client#client{password = Value}}}.
+get_password({error, Reason}, _ConnVarHead, _Client, _ConnWill) ->
+    {error, Reason, undefined};
+get_password({ok, _Length, Value, RestBin}, ConnVarHead, Client, ConnWill) ->
+    {ok, RestBin, ConnVarHead, Client#client{password = Value}, ConnWill#conn_will{client = Client#client{password = Value}}}.
+
+prepare_reply({ok, <<>>, _ConnVarHead, Client, ConnWill}) ->
+    {ok, Client, ConnWill};
+prepare_reply(Error) ->
+    Error.
+
 
 
 %% %% Copyright 2013 KuldeepSinh Chauhan

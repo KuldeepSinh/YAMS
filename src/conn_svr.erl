@@ -185,9 +185,9 @@ stop_var_head_svr(VarHeadSvrPid) ->
 
 
 process_conn_pkt(ConnPkt) ->
-    {ok, VarHeadSvrPid, ConnPkt} = group_flags_n_fields(create_payload_svr(ConnPkt)),
-    stop_var_head_svr(VarHeadSvrPid),
-    ConnPkt.    
+    {ok, PayloadSvrPid, ReplyReceived} = group_flags_n_fields(create_payload_svr(ConnPkt)),
+    stop_var_head_svr(PayloadSvrPid),
+    ReplyReceived.    
 %% create conn_paylaod_svr
 create_payload_svr(ConnPkt) ->
     Result = conn_payload_svr:create(ConnPkt), %% where, Result = {ok, ConnPayloadSvrPid}
