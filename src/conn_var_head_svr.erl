@@ -265,5 +265,4 @@ extract_kat(_) ->
 prepare_reply({ok, valid_kat_value, NewConnPkt}) ->
     {ok, NewConnPkt};
 prepare_reply(Error) ->
-    Error.
-    
+    Error.    
