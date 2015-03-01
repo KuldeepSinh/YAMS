@@ -106,14 +106,14 @@ init([Pkt]) ->
 %% @end
 %%--------------------------------------------------------------------
 handle_call(validate_var_head, _From, #conn_pkt{payload = Pkt} = State) ->
-    Reply_ConnPkt = extract_kat
-		      (validate_password_flag
-			 (validate_will_flags
-			    (validate_reserved_flag
-			       (extract_flags
-				  (validate_proto_level
-				     (validate_proto_name(Pkt))))))),
-    {reply, Reply_ConnPkt, State}.
+    ProcessedPkt = extract_kat
+		     (validate_password_flag
+			(validate_will_flags
+			   (validate_reserved_flag
+			      (extract_flags
+				 (validate_proto_level
+				    (validate_proto_name(Pkt))))))),
+    {reply, prepare_reply(ProcessedPkt), State}. 
 
 %%--------------------------------------------------------------------
 %% @private
@@ -261,3 +261,9 @@ extract_kat({ok, valid_password_flag, #conn_pkt{conn_var_head = VarHead, payload
     {ok, valid_kat_value, NewConnPkt};
 extract_kat(_) ->
     {error, invalid_kat_value, undefined}.
+
+prepare_reply({ok, valid_kat_value, NewConnPkt}) ->
+    {ok, NewConnPkt};
+prepare_reply(Error) ->
+    Error.
+    

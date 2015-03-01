@@ -45,8 +45,8 @@
 	  payload
 	}
        ).
-%% full id of the client is a composit field containing client-id, user name and password.
--record(full_id, 
+%% client is a composit field containing client-id, user name and password.
+-record(client, 
 	{
 	  client_id, %% value of client ID (retrieved from the connect payload)
 	  username, %% value of client's username (retrieved from the connect payload)
@@ -56,8 +56,8 @@
 %% will record should be used for the will management.
 -record(conn_will,
 	{
-	  full_id, %% full id as defined above
-	  will_flag, %% value stored in the will flag
+	  client, %% full id of client as defined above
+	  will, %% value stored in the will flag
 	  will_qos, %% value stored in the will quality of service flag
 	  will_retain, %% value stored in the will retain flag
 	  will_topic, %% value of the will topic (retrieved from the connect payload)
@@ -67,7 +67,7 @@
 %% session record should be used for the session management.
 -record(session,
 	{
-	  full_id, %% full id as defined above
+	  client, %% full id of client as defined above
 	  session_id, %% session id of the client
 	  clean_session %% value of the clean session flag
 	}

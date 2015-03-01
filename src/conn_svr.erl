@@ -132,7 +132,8 @@ handle_cast(_Message, State) ->
 %% @end
 %%--------------------------------------------------------------------
 handle_info(timeout, #state{apid = APid, self = CPid, pkt = Pkt} = State) ->
-    ConnPkt = process_var_head(Pkt),
+    {ok, ConnPkt} = process_var_head(Pkt),
+    ConnGrp = process_conn_pkt(ConnPkt),
     stop(CPid),
     {noreply, State};
 handle_info(_Info, State) ->
@@ -168,22 +169,35 @@ code_change(_OldVsn, State, _Extra) ->
 %% ===================================================================
 
 process_var_head(Pkt) ->
-    {ok, VarHeadSvrPid, ConnPkt} = separate_varhead_n_payload(create_var_head_svr(Pkt)),
+    {ok, VarHeadSvrPid, ReplyReceived} = separate_varhead_n_payload(create_var_head_svr(Pkt)),
     stop_var_head_svr(VarHeadSvrPid),
-    ConnPkt.    
-
+    ReplyReceived.    
 %% create conn_var_head_svr
 create_var_head_svr(Pkt) ->
     Result = conn_var_head_svr:create(Pkt), %% where, Result = {ok, VarHeadSvrPid}
     Result.
-
 %% separate varhead and payload from the Packet.
 separate_varhead_n_payload({ok, VarHeadSvrPid}) ->
     ConnPkt = conn_var_head_svr:validate_var_head(VarHeadSvrPid), %% where, ConnPkt = #conn_pkt{}
     {ok, VarHeadSvrPid, ConnPkt}.  
-
 stop_var_head_svr(VarHeadSvrPid) ->
     conn_var_head_svr:stop(VarHeadSvrPid).
+
+
+process_conn_pkt(ConnPkt) ->
+    {ok, VarHeadSvrPid, ConnPkt} = group_flags_n_fields(create_payload_svr(ConnPkt)),
+    stop_var_head_svr(VarHeadSvrPid),
+    ConnPkt.    
+%% create conn_paylaod_svr
+create_payload_svr(ConnPkt) ->
+    Result = conn_payload_svr:create(ConnPkt), %% where, Result = {ok, ConnPayloadSvrPid}
+    Result.
+%% separate varhead and payload from the Packet.
+group_flags_n_fields({ok, PayloadSvrPid}) ->
+    Group = conn_payload_svr:group_flags_and_fields(PayloadSvrPid), 
+    {ok, PayloadSvrPid, Group}.  
+stop_payload_svr(PayloadSvrPid) ->
+    conn_paylaod_svr:stop(PayloadSvrPid).
     
 %% %% Copyright 2013 KuldeepSinh Chauhan
 %% %%

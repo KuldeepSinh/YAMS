@@ -44,11 +44,12 @@
 
 -define(SERVER, ?MODULE).
 
-%% Included "connect.hrl" contains definitions of conn_flags and conn_var_head.
-%%-record(conn_flags, {user, password, will_retain, will_qos, will, clean_session}).
-%%-record(conn_var_head, {conn_flags, kat}).
-%%-record(conn_pkt, {conn_var_head, payload}). 
-%%       conn_pkt will store state of the fsm. Same state will be returned to conn_svr for further processing.
+%% Included "connect.hrl" contains definitions of below mentioned records.
+%% -record(conn_flags, {user, password, will_retain, will_qos, will, clean_session}).
+%% -record(conn_var_head, {conn_flags, kat}).
+%% -record(conn_pkt, {conn_var_head, payload}). 
+%% -record(client, {client_id, username, password}). 
+%% -record(conn_will,{client, will_flag, will_qos, will_retain, will_topic, will_msg}).
 -include("../include/connect.hrl").
 %%%===================================================================
 %%% API
@@ -105,10 +106,12 @@ init([Pkt]) ->
 %% @end
 %%--------------------------------------------------------------------
 handle_call(group_flags_and_fields, _From, Pkt) ->
-    {reply, ok, Pkt};
-handle_call(_Request, _From, State) ->
-    Reply = ok,
-    {reply, Reply, State}.
+    Reply = extract_password
+	       (extract_user
+		  (extract_will_msg
+		     (extract_will_topic
+			(extract_client_id(Pkt))))),
+    {reply, Reply, Pkt}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -164,6 +167,63 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
+extract_client_id(#conn_pkt{conn_var_head = ConnVarHead, payload = Payload}) ->
+    get_client(yams_lib:extract_str(Payload), ConnVarHead).
+
+get_client({error, Reason}, _ConnVarHead) ->
+    {error, Reason};
+get_client({ok, _Length, Value, RestBin}, ConnVarHead) ->
+    {ok, RestBin, ConnVarHead, #client{client_id = Value}}.
+
+extract_will_topic({error, Reason}) ->
+    {error, Reason};
+extract_will_topic({ok, RestBin, #conn_var_head{conn_flags = #conn_flags{will = 1}} = ConnVarHead, Client}) ->
+    get_will_topic(yams_lib:extract_str(RestBin), ConnVarHead, Client);
+extract_will_topic({ok, RestBin, ConnVarHead, Client, #conn_will{}}) ->
+    {ok, RestBin, ConnVarHead, Client}.
+
+get_will_topic({error, Reason}, _ConnVarHead, _Client) ->
+    {error, Reason};
+get_will_topic({ok, _Length, Value, RestBin}, #conn_var_head{conn_flags = #conn_flags{will = Will, will_qos = WillQoS, will_retain = WillRetain}} = ConnVarHead, Client) ->
+    {ok, RestBin, ConnVarHead, Client, #conn_will{client = Client, will = Will, will_qos = WillQoS, will_retain = WillRetain, will_topic = Value}}.
+
+extract_will_msg({error, Reason}) ->
+    {error, Reason};
+extract_will_msg({ok, RestBin, #conn_var_head{conn_flags = #conn_flags{will = 1}} = ConnVarHead, Client, Will}) ->
+    get_will_msg(yams_lib:extract_str(RestBin), ConnVarHead, Client, Will);
+extract_will_msg({ok, RestBin, ConnVarHead, Client, Will}) ->
+    {ok, RestBin, ConnVarHead, Client, Will}.
+
+get_will_msg({error, Reason}, _ConnVarHead, _Client, _Will) ->
+    {error, Reason};
+get_will_msg({ok, _Length, Value, RestBin}, ConnVarHead, Client, Will) ->
+    {ok, RestBin, ConnVarHead, Client, Will#conn_will{will_msg = Value}}.
+
+
+extract_user({error, Reason}) ->
+    {error, Reason};
+extract_user({ok, RestBin, #conn_var_head{conn_flags = #conn_flags{user = 1}} = ConnVarHead, Client, Will}) ->
+    get_user(yams_lib:extract_str(RestBin), ConnVarHead, Client, Will);
+extract_user({ok, RestBin, ConnVarHead, Client, Will}) ->
+    {ok, RestBin, ConnVarHead, Client, Will}.
+
+get_user({error, Reason}, _ConnVarHead, _Client, _Will) ->
+    {error, Reason};
+get_user({ok, _Length, Value, RestBin}, ConnVarHead, Client, Will) ->
+    {ok, RestBin, ConnVarHead, Client#client{username = Value}, Will#conn_will{client = Client#client{username = Value}}}.
+
+extract_password({error, Reason}) ->
+    {error, Reason};
+extract_password({ok, RestBin, #conn_var_head{conn_flags = #conn_flags{password = 1}} = ConnVarHead, Client, Will}) ->
+    get_password(yams_lib:extract_str(RestBin), ConnVarHead, Client, Will);
+extract_password({ok, RestBin, ConnVarHead, Client, Will}) ->
+    {ok, RestBin, ConnVarHead, Client, Will}.
+
+get_password({error, Reason}, _ConnVarHead, _Client, _Will) ->
+    {error, Reason};
+get_password({ok, _Length, Value, RestBin}, ConnVarHead, Client, Will) ->
+    {ok, RestBin, ConnVarHead, Client#client{password = Value}, Will#conn_will{client = Client#client{password = Value}}}.
+
 
 %% %% Copyright 2013 KuldeepSinh Chauhan
 %% %%
