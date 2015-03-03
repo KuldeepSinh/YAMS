@@ -132,8 +132,7 @@ handle_cast(_Message, State) ->
 %% @end
 %%--------------------------------------------------------------------
 handle_info(timeout, #state{apid = APid, self = CPid, pkt = Pkt} = State) ->
-    {ok, ConnPkt} = process_var_head(Pkt),
-    ConnGrp = process_conn_pkt(ConnPkt),
+    process_conn_pkt(process_var_head(Pkt)),    
     stop(CPid),
     {noreply, State};
 handle_info(_Info, State) ->
@@ -183,10 +182,11 @@ separate_varhead_n_payload({ok, VarHeadSvrPid}) ->
 stop_var_head_svr(VarHeadSvrPid) ->
     conn_var_head_svr:stop(VarHeadSvrPid).
 
-
-process_conn_pkt(ConnPkt) ->
+process_conn_pkt({error, Reason}) ->
+    {error, Reason};
+process_conn_pkt({ok, ConnPkt}) ->
     {ok, PayloadSvrPid, ReplyReceived} = group_flags_n_fields(create_payload_svr(ConnPkt)),
-    stop_var_head_svr(PayloadSvrPid),
+    stop_payload_svr(PayloadSvrPid),
     ReplyReceived.    
 %% create conn_paylaod_svr
 create_payload_svr(ConnPkt) ->
@@ -195,7 +195,6 @@ create_payload_svr(ConnPkt) ->
 %% separate varhead and payload from the Packet.
 group_flags_n_fields({ok, PayloadSvrPid}) ->
     Group = conn_payload_svr:group_flags_and_fields(PayloadSvrPid), 
-    stop_payload_svr(PayloadSvrPid),
     {ok, PayloadSvrPid, Group}.  
 stop_payload_svr(PayloadSvrPid) ->
-    conn_paylaod_svr:stop(PayloadSvrPid).
+    conn_payload_svr:stop(PayloadSvrPid).
