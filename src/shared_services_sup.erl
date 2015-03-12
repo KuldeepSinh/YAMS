@@ -1,4 +1,4 @@
-%% Copyright 2013 KuldeepSinh Chauhan
+%% Copyright 2013-2015 KuldeepSinh Chauhan
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -14,12 +14,11 @@
 
 %%%-------------------------------------------------------------------
 %%% @author  KuldeepSinh Chauhan
-%%% @copyright (C) 2013, 
+%%% @copyright (C) 2013-2015 
 %%% @doc
-%%%     tcp_sup : module to listen and accept messages from/to clients connected over TCP.
+%%%     shared_services_sup : module supervise - superviosrs providing shared services within yams.
 %%% @end
 %%% Created : 10 Aug 2013 by KuldeepSinh Chauhan
-%%% Updated : 05 Feb 2015 by KuldeepSinh Chauhan
 %%%-------------------------------------------------------------------
 -module(shared_services_sup).
 

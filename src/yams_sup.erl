@@ -1,4 +1,4 @@
-%% Copyright 2013 KuldeepSinh Chauhan
+%% Copyright 2013-2015 KuldeepSinh Chauhan
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -14,13 +14,13 @@
 
 %%%-------------------------------------------------------------------
 %%% @author KuldeepSinh Chauhan
-%%% @copyright (C) 2013
+%%% @copyright (C) 2013-2015
 %%% @doc yams_sup is the root supervisor. 
 %%%      It starts tcp_sup for handling communication over TCP.
-%%%      It also starts mqtt_sup implementation of the protocol.
+%%%      It starts mqtt_sup implementation of the protocol.
+%%%      It starts shared_services_sup for handling shared services used within yams.
 %%% @end
 %%% Created : Aug 2013 by KuldeepSinh Chauhan
-%%% Modified : Feb 2015 by KuldeepSinh Chauhan
 %%%-------------------------------------------------------------------
 -module(yams_sup).
 %% yams_sup implements supervisor interface.
