@@ -55,10 +55,29 @@ init([]) ->
     %Supervisor for Packet router
     RouterSup = {router_sup, {router_sup, start_link, []}, Restart, Shutdown, Type, [router_sup]},
 
+    %Supervisor for Session server
+    SessionSup = {session_sup, {session_sup, start_link, []}, Restart, Shutdown, Type, [session_sup]},
+
+    %Supervisor for Will server
+    WillSup = {will_sup, {will_sup, start_link, []}, Restart, Shutdown, Type, [will_sup]},
+
+    %Supervisor for Keep alive time server
+    KatSup = {kat_sup, {kat_sup, start_link, []}, Restart, Shutdown, Type, [kat_sup]},
+
+
     %%In the following list, the order of given supervisors is very important.
     %%Starting from the lowest level, supervisors will be started upto the highest level, 
     %%ensuring, lower level Supervisor is started before it is used by the higher level.
-    {ok, {SupFlags, [RouterSup]}}.
+    {ok, 
+     {SupFlags, 
+      [
+       WillSup,
+       KatSup,
+       SessionSup,       
+       RouterSup
+      ]
+     }
+    }.
 
 %% ===================================================================
 %% Non-API functions

@@ -48,7 +48,13 @@
 %%-record(conn_var_head, {conn_flags, kat}).
 %%-record(conn_pkt, {conn_var_head, payload}). 
 -include("../include/connect.hrl").
--record(state, {apid, self, pkt}).
+-record(state, 
+	{
+	  apid, 
+	  self, 
+	  pkt
+	}
+       ).
 
 %%%===================================================================
 %%% API

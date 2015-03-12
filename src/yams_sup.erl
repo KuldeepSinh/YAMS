@@ -57,11 +57,21 @@ init([]) ->
     TCPSup = {tcp_sup, {tcp_sup, start_link, []}, Restart, Shutdown, Type, [tcp_sup]},
     %Supervisor for implementing MQTT protocol
     MQTTSup = {mqtt_sup, {mqtt_sup, start_link, []}, Restart, Shutdown, Type, [mqtt_sup]},
+    %Supervisor for implementing cross cutting concerns
+    CCConcernsSup = {cc_concerns_sup, {cc_concerns_sup, start_link, []}, Restart, Shutdown, Type, [cc_concerns_sup]},
 
     %%In the following list, the order of given supervisors is very important.
     %%Starting from the lowest level, supervisors will be started upto the highest level, 
     %%ensuring, lower level Supervisor is ready before it is used by the higher level.
-    {ok, {SupFlags, [MQTTSup, TCPSup]}}.
+    {ok, 
+     {SupFlags, 
+      [
+       CCConcernsSup, 
+       MQTTSup, 
+       TCPSup
+      ]
+     }
+    }.
 
 %% ===================================================================
 %% Non-API functions
