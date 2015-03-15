@@ -1,4 +1,4 @@
-%% Copyright 2013, 2014, 2015 KuldeepSinh Chauhan
+%% Copyright 2013 KuldeepSinh Chauhan
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -14,24 +14,25 @@
 
 %%%-------------------------------------------------------------------
 %%% @author  KuldeepSinh Chauhan
-%%% @copyright (C) 2013, 2014, 2015
+%%% @copyright (C) 2013, 
 %%% @doc
-%%%     This module will supervise connect payload gen server.
+%%%     This module will supervise connect message handlers.
 %%% @end
-%%% Created : 13 Feb 2015 by  KuldeepSinh Chauhan
+%%% Created : 10 Aug 2013 by  KuldeepSinh Chauhan
 %%%-------------------------------------------------------------------
--module(conn_payload_svr_sup).
+-module(conn_f_sup).
 
 -behaviour(supervisor).
 
 %% API
 -export([
-	 start_link/0, 
-	 start_child/1
+	 start_link/0
 	]).
 
 %% Supervisor callbacks
--export([init/1]).
+-export([
+	 init/1
+	]).
 
 -define(SERVER, ?MODULE).
 %%%===================================================================
@@ -47,9 +48,6 @@
 %%--------------------------------------------------------------------
 start_link() ->
     supervisor:start_link({local, ?SERVER}, ?MODULE, []).
-
-start_child(Pkt) ->
-    supervisor:start_child(?SERVER, [Pkt]).
 
 %%%===================================================================
 %%% Supervisor callbacks
@@ -69,20 +67,22 @@ start_child(Pkt) ->
 %% @end
 %%--------------------------------------------------------------------
 init([]) ->
-    RestartStrategy = simple_one_for_one,
+    RestartStrategy = one_for_one,
     MaxRestarts = 0,
     MaxSecondsBetweenRestarts = 1,
-
     SupFlags = {RestartStrategy, MaxRestarts, MaxSecondsBetweenRestarts},
 
-    Restart = temporary,
-    Shutdown = 2000,
-    Type = worker,
+    Restart = permanent,
+    Shutdown = infinity,
+    Type = supervisor,
 
-    %% conn_paylaod_svr is a gen_server, which will split payload in accordance with the connect_flags. 
-    %% Further it will group together payload components along with the connect_flags associated with them.
-    ConnPayloadSvr = {conn_payload_svr, {conn_payload_svr, start_link, []}, Restart, Shutdown, Type, [conn_payload_svr]},
-    {ok, {SupFlags, [ConnPayloadSvr]}}.
+    %Suprevisor for handling flow for connect front-end
+    ConnFHndlrSup = {conn_f_hndlr_sup, {conn_f_hndlr_sup, start_link, []}, Restart, Shutdown, Type, [conn_f_hndlr_sup]},
+    %% Payload parser supervisor
+    ConnPLPrsrSup = {conn_pl_prsr_sup,  {conn_pl_prsr_sup, start_link, []}, Restart, Shutdown, Type, [conn_pl_prsr_sup]},
+    %% Variable Header parser supervisor
+    ConnVHPrsrSup = {conn_vh_prsr_sup, {conn_vh_prsr_sup, start_link, []}, Restart, Shutdown, Type, [conn_vh_prsr_sup]},
+    {ok, {SupFlags, [ConnFHndlrSup, ConnPLPrsrSup, ConnVHPrsrSup]}}.
 
 %%%===================================================================
 %%% Internal functions

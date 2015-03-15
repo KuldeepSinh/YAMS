@@ -20,19 +20,18 @@
 %%% @end
 %%% Created : 10 Aug 2013 by  KuldeepSinh Chauhan
 %%%-------------------------------------------------------------------
--module(conn_pkt_validation_sup).
+-module(conn_vh_prsr_sup).
 
 -behaviour(supervisor).
 
 %% API
 -export([
-	 start_link/0
+	 start_link/0, 
+	 start_child/1
 	]).
 
 %% Supervisor callbacks
--export([
-	 init/1
-	]).
+-export([init/1]).
 
 -define(SERVER, ?MODULE).
 %%%===================================================================
@@ -48,6 +47,9 @@
 %%--------------------------------------------------------------------
 start_link() ->
     supervisor:start_link({local, ?SERVER}, ?MODULE, []).
+
+start_child(Pkt) ->
+    supervisor:start_child(?SERVER, [Pkt]).
 
 %%%===================================================================
 %%% Supervisor callbacks
@@ -67,19 +69,19 @@ start_link() ->
 %% @end
 %%--------------------------------------------------------------------
 init([]) ->
-    RestartStrategy = one_for_one,
+    RestartStrategy = simple_one_for_one,
     MaxRestarts = 0,
     MaxSecondsBetweenRestarts = 1,
+
     SupFlags = {RestartStrategy, MaxRestarts, MaxSecondsBetweenRestarts},
 
-    Restart = permanent,
-    Shutdown = infinity,
-    Type = supervisor,
+    Restart = temporary,
+    Shutdown = 2000,
+    Type = worker,
 
-
-    ConnVarHeadSvrSup = {conn_var_head_svr_sup, {conn_var_head_svr_sup, start_link, []}, Restart, Shutdown, Type, [conn_var_head_svr_sup]},
-    ConnPayloadSvrSup = {conn_payload_svr_sup,  {conn_payload_svr_sup, start_link, []}, Restart, Shutdown, Type, [conn_payload_svr_sup]},
-    {ok, {SupFlags, [ConnPayloadSvrSup, ConnVarHeadSvrSup]}}.
+    %% Connect variable header parser
+    ConnVHPrsr = {conn_vh_prsr, {conn_vh_prsr, start_link, []}, Restart, Shutdown, Type, [conn_vh_prsr]},
+    {ok, {SupFlags, [ConnVHPrsr]}}.
 
 %%%===================================================================
 %%% Internal functions

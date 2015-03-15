@@ -1,4 +1,4 @@
-%% Copyright 2013 KuldeepSinh Chauhan
+%% Copyright 2013, 2014, 2015 KuldeepSinh Chauhan
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -14,13 +14,13 @@
 
 %%%-------------------------------------------------------------------
 %%% @author  KuldeepSinh Chauhan
-%%% @copyright (C) 2013, 
+%%% @copyright (C) 2013, 2014, 2015
 %%% @doc
-%%%     This module will supervise connect message handlers.
+%%%     This module will supervise connect payload gen server.
 %%% @end
-%%% Created : 10 Aug 2013 by  KuldeepSinh Chauhan
+%%% Created : 13 Feb 2015 by  KuldeepSinh Chauhan
 %%%-------------------------------------------------------------------
--module(conn_var_head_svr_sup).
+-module(conn_pl_prsr_sup).
 
 -behaviour(supervisor).
 
@@ -79,8 +79,10 @@ init([]) ->
     Shutdown = 2000,
     Type = worker,
 
-    ConnVarHeadSvr = {conn_var_head_svr, {conn_var_head_svr, start_link, []}, Restart, Shutdown, Type, [conn_var_head_svr]},
-    {ok, {SupFlags, [ConnVarHeadSvr]}}.
+    %% conn_pl_prsr (connect payload parser) is a gen_server, which will split payload in accordance with the connect_flags. 
+    %% Further it will group together payload components along with the connect_flags associated with them.
+    ConnPLPrsr = {conn_pl_prsr, {conn_pl_prsr, start_link, []}, Restart, Shutdown, Type, [conn_pl_prsr]},
+    {ok, {SupFlags, [ConnPLPrsr]}}.
 
 %%%===================================================================
 %%% Internal functions

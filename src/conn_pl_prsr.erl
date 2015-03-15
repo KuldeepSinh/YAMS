@@ -20,7 +20,7 @@
 %%% @end
 %%% Created : 21 Feb 2015 by  KuldeepSinh Chauhan
 %%%-------------------------------------------------------------------
--module(conn_payload_svr).
+-module(conn_pl_prsr).
 
 -behaviour(gen_server).
 
@@ -55,7 +55,7 @@
 %%% API
 %%%===================================================================
 create(Pkt) ->
-    conn_payload_svr_sup:start_child(Pkt).
+    conn_pl_prsr_sup:start_child(Pkt).
 
 stop(SelfPid) ->
     gen_server:cast(SelfPid, stop).

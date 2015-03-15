@@ -20,7 +20,7 @@
 %%% @end
 %%% Created : 24 Feb 2015 by KuldeepSinh Chauhan
 %%%-------------------------------------------------------------------
--module(conn_var_head_svr).
+-module(conn_vh_prsr).
 
 -behaviour(gen_server).
 
@@ -55,7 +55,7 @@
 %%% API
 %%%===================================================================
 create(Pkt) ->
-    conn_var_head_svr_sup:start_child(Pkt).
+    conn_vh_prsr_sup:start_child(Pkt).
 
 stop(SelfPid) ->
     gen_server:cast(SelfPid, stop).

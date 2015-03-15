@@ -81,12 +81,20 @@ init([]) ->
     Shutdown = infinity,
     Type = supervisor,
 
+    %% %Suprevisor for connect packet post parse precessing (connect back-end)
+    %% ConnBSup = {conn_b_sup, {conn_b_sup, start_link, []}, Restart, Shutdown, Type, [conn_b_sup]},
 
-    %% %Suprevisor for connect genserver supervisor.
-    ConnSvrSup = {conn_svr_sup, {conn_svr_sup, start_link, []}, Restart, Shutdown, Type, [conn_svr_sup]},
-    %Suprevisor for connect packet validation FSMs supervisor.
-    ConnPktValidationSup = {conn_pkt_validation_sup, {conn_pkt_validation_sup, start_link, []}, Restart, Shutdown, Type, [conn_pkt_validation_sup]},
-    {ok, {SupFlags, [ConnPktValidationSup, ConnSvrSup]}}.
+    %Suprevisor for connect packet parsing (connect front-end)
+    ConnFSup = {conn_f_sup, {conn_f_sup, start_link, []}, Restart, Shutdown, Type, [conn_f_sup]},
+
+    {ok, 
+     {SupFlags, 
+      [
+       %%ConnBSup, 
+       ConnFSup
+      ]
+     }
+    }.
 
 
 

@@ -20,7 +20,7 @@
 %%% @end
 %%% Created : 17 Aug 2013 by  KuldeepSinh Chauhan
 %%%-------------------------------------------------------------------
--module(conn_svr).
+-module(conn_f_hndlr).
 
 -behaviour(gen_server).
 
@@ -68,7 +68,7 @@
 %% @end
 %%--------------------------------------------------------------------
 create(APid, Pkt) ->
-    conn_svr_sup:start_child(APid, Pkt).
+    conn_f_hndlr_sup:start_child(APid, Pkt).
 
 start_link(APid, Pkt) ->
     gen_server:start_link(?MODULE, [APid, Pkt], []).
@@ -123,9 +123,7 @@ handle_call(_Request, _From, State) ->
 %% @end
 %%--------------------------------------------------------------------
 handle_cast(stop, State ) ->
-    {stop, normal, State};
-handle_cast(_Message, State) ->
-   {noreply, State}.
+    {stop, normal, State}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -174,33 +172,33 @@ code_change(_OldVsn, State, _Extra) ->
 %% ===================================================================
 
 process_var_head(Pkt) ->
-    {ok, VarHeadSvrPid, ReplyReceived} = separate_varhead_n_payload(create_var_head_svr(Pkt)),
-    stop_var_head_svr(VarHeadSvrPid),
+    {ok, VHPrsrPid, ReplyReceived} = separate_varhead_n_payload(create_vh_prsr(Pkt)),
+    stop_vh_prsr(VHPrsrPid),
     ReplyReceived.    
-%% create conn_var_head_svr
-create_var_head_svr(Pkt) ->
-    Result = conn_var_head_svr:create(Pkt), %% where, Result = {ok, VarHeadSvrPid}
+%% create conn_vh_prsr
+create_vh_prsr(Pkt) ->
+    Result = conn_vh_prsr:create(Pkt), %% where, Result = {ok, VHPrsrPid}
     Result.
 %% separate varhead and payload from the Packet.
-separate_varhead_n_payload({ok, VarHeadSvrPid}) ->
-    ConnPkt = conn_var_head_svr:validate_var_head(VarHeadSvrPid), %% where, ConnPkt = #conn_pkt{}
-    {ok, VarHeadSvrPid, ConnPkt}.  
-stop_var_head_svr(VarHeadSvrPid) ->
-    conn_var_head_svr:stop(VarHeadSvrPid).
+separate_varhead_n_payload({ok, VHPrsrPid}) ->
+    ConnPkt = conn_vh_prsr:validate_var_head(VHPrsrPid), %% where, ConnPkt = #conn_pkt{}
+    {ok, VHPrsrPid, ConnPkt}.  
+stop_vh_prsr(VHPrsrPid) ->
+    conn_vh_prsr:stop(VHPrsrPid).
 
 process_conn_pkt({error, Reason}) ->
     {error, Reason};
 process_conn_pkt({ok, ConnPkt}) ->
-    {ok, PayloadSvrPid, ReplyReceived} = group_flags_n_fields(create_payload_svr(ConnPkt)),
-    stop_payload_svr(PayloadSvrPid),
+    {ok, PLPrsrPid, ReplyReceived} = group_flags_n_fields(create_pl_prsr(ConnPkt)),
+    stop_pl_prsr(PLPrsrPid),
     ReplyReceived.    
-%% create conn_paylaod_svr
-create_payload_svr(ConnPkt) ->
-    Result = conn_payload_svr:create(ConnPkt), %% where, Result = {ok, ConnPayloadSvrPid}
+%% create conn_pl_prsr
+create_pl_prsr(ConnPkt) ->
+    Result = conn_pl_prsr:create(ConnPkt), %% where, Result = {ok, PLPrsrPid}
     Result.
 %% separate varhead and payload from the Packet.
-group_flags_n_fields({ok, PayloadSvrPid}) ->
-    Group = conn_payload_svr:group_flags_and_fields(PayloadSvrPid), 
-    {ok, PayloadSvrPid, Group}.  
-stop_payload_svr(PayloadSvrPid) ->
-    conn_payload_svr:stop(PayloadSvrPid).
+group_flags_n_fields({ok, PLPrsrPid}) ->
+    Group = conn_pl_prsr:group_flags_and_fields(PLPrsrPid), 
+    {ok, PLPrsrPid, Group}.  
+stop_pl_prsr(PLPrsrPid) ->
+    conn_pl_prsr:stop(PLPrsrPid).

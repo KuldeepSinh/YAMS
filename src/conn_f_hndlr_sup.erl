@@ -20,7 +20,7 @@
 %%% @end
 %%% Created : 10 Aug 2013 by  KuldeepSinh Chauhan
 %%%-------------------------------------------------------------------
--module(conn_svr_sup).
+-module(conn_f_hndlr_sup).
 
 -behaviour(supervisor).
 
@@ -79,8 +79,9 @@ init([]) ->
     Shutdown = 2000,
     Type = worker,
 
-    ConnSvr = {conn_svr, {conn_svr, start_link, []}, Restart, Shutdown, Type, [conn_svr]},
-    {ok, {SupFlags, [ConnSvr]}}.
+    %% Connect front end handler
+    ConnFHndlr = {conn_f_hndlr, {conn_f_hndlr, start_link, []}, Restart, Shutdown, Type, [conn_f_handlr]},
+    {ok, {SupFlags, [ConnFHndlr]}}.
 
 %%%===================================================================
 %%% Internal functions
