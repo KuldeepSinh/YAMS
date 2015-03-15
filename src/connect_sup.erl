@@ -1,4 +1,4 @@
-%% Copyright 2013 KuldeepSinh Chauhan
+%% Copyright 2013-2015 KuldeepSinh Chauhan
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -14,11 +14,11 @@
 
 %%%-------------------------------------------------------------------
 %%% @author  KuldeepSinh Chauhan
-%%% @copyright (C) 2013, 
+%%% @copyright (C) 2013-2015 
 %%% @doc
 %%%     This module will supervise connect message handlers.
 %%% @end
-%%% Created : 10 Aug 2013 by  KuldeepSinh Chauhan
+%%% Created : 18 Aug 2013 by  KuldeepSinh Chauhan
 %%%-------------------------------------------------------------------
 -module(connect_sup).
 
@@ -87,11 +87,15 @@ init([]) ->
     %Suprevisor for connect packet parsing (connect front-end)
     ConnFSup = {conn_f_sup, {conn_f_sup, start_link, []}, Restart, Shutdown, Type, [conn_f_sup]},
 
+    %Suprevisor for connect packet handler (will regulate flow for connect control packets)
+    ConnectHndlrSup = {connect_hndlr_sup, {connect_hndlr_sup, start_link, []}, Restart, Shutdown, Type, [connect_hndlr_sup]},
+
     {ok, 
      {SupFlags, 
       [
        ConnBSup, 
-       ConnFSup
+       ConnFSup,
+       ConnectHndlrSup
       ]
      }
     }.

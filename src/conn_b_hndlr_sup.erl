@@ -18,7 +18,7 @@
 %%% @doc
 %%%     This module will supervise backend for the connect control packets.
 %%% @end
-%%% Created : 10 Aug 2013 by  KuldeepSinh Chauhan
+%%% Created : 15 March 2015 by  KuldeepSinh Chauhan
 %%%-------------------------------------------------------------------
 -module(conn_b_hndlr_sup).
 
@@ -80,7 +80,7 @@ init([]) ->
     Type = worker,
 
     %% Connect front end handler
-    ConnBHndlr = {conn_b_hndlr, {conn_b_hndlr, start_link, []}, Restart, Shutdown, Type, [conn_b_handlr]},
+    ConnBHndlr = {conn_b_hndlr, {conn_b_hndlr, start_link, []}, Restart, Shutdown, Type, [conn_b_hndlr]},
     {ok, {SupFlags, [ConnBHndlr]}}.
 
 %%%===================================================================

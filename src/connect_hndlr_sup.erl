@@ -14,20 +14,20 @@
 
 %%%-------------------------------------------------------------------
 %%% @author  KuldeepSinh Chauhan
-%%% @copyright (C) 2013-2015
+%%% @copyright (C) 2013-2015 
 %%% @doc
-%%%     This module will supervise connect message handlers.
+%%%     This module will supervise backend for the connect control packets.
 %%% @end
-%%% Created : 15 Mar 2015 by  KuldeepSinh Chauhan
+%%% Created : 15 March 2015 by  KuldeepSinh Chauhan
 %%%-------------------------------------------------------------------
--module(conn_f_hndlr_sup).
+-module(connect_hndlr_sup).
 
 -behaviour(supervisor).
 
 %% API
 -export([
 	 start_link/0, 
-	 start_child/2
+	 start_child/0
 	]).
 
 %% Supervisor callbacks
@@ -48,8 +48,8 @@
 start_link() ->
     supervisor:start_link({local, ?SERVER}, ?MODULE, []).
 
-start_child(APid, Msg) ->
-    supervisor:start_child(?SERVER, [APid, Msg]).
+start_child() ->
+    supervisor:start_child(?SERVER, []).
 
 %%%===================================================================
 %%% Supervisor callbacks
@@ -79,9 +79,9 @@ init([]) ->
     Shutdown = 2000,
     Type = worker,
 
-    %% Connect front end handler
-    ConnFHndlr = {conn_f_hndlr, {conn_f_hndlr, start_link, []}, Restart, Shutdown, Type, [conn_f_hndlr]},
-    {ok, {SupFlags, [ConnFHndlr]}}.
+    %% Connect handler
+    ConnectHndlr = {connect_hndlr, {connect_hndlr, start_link, []}, Restart, Shutdown, Type, [connect_hndlr]},
+    {ok, {SupFlags, [ConnectHndlr]}}.
 
 %%%===================================================================
 %%% Internal functions

@@ -1,4 +1,4 @@
-%% Copyright 2013 KuldeepSinh Chauhan
+%% Copyright 2013-2015 KuldeepSinh Chauhan
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -14,11 +14,11 @@
 
 %%%-------------------------------------------------------------------
 %%% @author  KuldeepSinh Chauhan
-%%% @copyright (C) 2013, 
+%%% @copyright (C) 2013-2015 
 %%% @doc
 %%%
 %%% @end
-%%% Created : 17 Aug 2013 by  KuldeepSinh Chauhan
+%%% Created : 15 Mar 2015 by  KuldeepSinh Chauhan
 %%%-------------------------------------------------------------------
 -module(conn_f_hndlr).
 
