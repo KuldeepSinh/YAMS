@@ -18,5 +18,5 @@ The name, YAMS, is inspired by one of the populer web-servers YAWS (http://hyber
 
 <b>Reminders: </b>
 
-1. Spiritual values of Erlang coding - http://www.gar1t.com/blog/2012/06/10/solving-embarrassingly-obvious-problems-in-erlang/ 
+1. Solving embarrassingly obvious problems in Erlang - http://www.gar1t.com/blog/2012/06/10/solving-embarrassingly-obvious-problems-in-erlang/ 
 2. Writing beautiful Erlang code - http://www.youtube.com/watch?feature=player_embedded&v=IdJwECjylB4
