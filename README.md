@@ -16,7 +16,7 @@ The name, YAMS, is inspired by one of the populer web-servers YAWS (http://hyber
 2. Erlang and OTP in Action (An excellent book on Erlang OTP)
 3. Erlang Documentation
 
-<b>Reminders: </b>
+<b>Coding guide-lines: </b>
 
 1. Solving embarrassingly obvious problems in Erlang - http://www.gar1t.com/blog/2012/06/10/solving-embarrassingly-obvious-problems-in-erlang/ 
 2. Writing beautiful Erlang code - http://www.youtube.com/watch?feature=player_embedded&v=IdJwECjylB4
